@@ -32,6 +32,9 @@ export default defineConfig((/* ctx */) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#build
     build: {
+      defineEnv: {
+        API_URL: process.env.API_URL || 'http://localhost:5001/api',
+      },
       target: {
         // browser: 'baseline-widely-available',
         // node: 'node22'

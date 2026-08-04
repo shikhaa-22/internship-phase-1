@@ -13,11 +13,12 @@ export function useAuth() {
     errorMessage.value = '';
 
     try {
-      const response = await fetch('http://localhost:5001/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.value, password: password.value }),
-      });
+        const API_BASE = import.meta.env.API_URL || 'http://localhost:5001/api';
+        const response = await fetch(`${API_BASE}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.value, password: password.value }),
+        });
 
       if (!response.ok) {
         throw new Error('Invalid email or password');

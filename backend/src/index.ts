@@ -56,14 +56,15 @@ const server = http.createServer(async (req: IncomingMessage, res: ServerRespons
     try {
         if (url === '/api/services' && method === 'GET') {
             const [rows] = await pool.execute('SELECT * FROM services');
+            
             return sendJSON(res, 200, rows);
         }
         
         if (url === '/api/login' && method === 'POST') {
             const body = await parseBody(req);
+            console.log('Login attempt received:', body); // Add this line
             const { email, password } = body;
 
-            // Query your users table (adjust column names to match your schema)
             const [rows]: any = await pool.execute(
                 'SELECT * FROM users WHERE email = ?',
                 [email]
@@ -74,10 +75,10 @@ const server = http.createServer(async (req: IncomingMessage, res: ServerRespons
             }
 
             const user = rows[0];
+            const storedPassword = user.password ?? user.password_hash ?? '';
+            const passwordMatches = password === storedPassword;
 
-            // Simple password check (or use bcrypt if your backend hashes passwords)
-            // Note: If you seeded with hashed_pass_123, match against that or your DB setup
-            if (password !== 'hashed_pass_123') { 
+            if (!passwordMatches) {
                 return sendJSON(res, 401, { error: 'Invalid email or password' });
             }
 

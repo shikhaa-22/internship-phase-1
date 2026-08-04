@@ -21,12 +21,20 @@
 
               <q-input
                 v-model="password"
+                :type="isPwdVisible ? 'text' : 'password'"
                 label="Password"
-                type="password"
                 outlined
                 dense
                 required
-              />
+              >
+                <template v-slot:append>
+                  <q-icon
+                    :name="isPwdVisible ? 'visibility' : 'visibility_off'"
+                    class="cursor-pointer"
+                    @click="isPwdVisible = !isPwdVisible"
+                  />
+                </template>
+              </q-input>
 
               <q-banner v-if="errorMessage" dense class="bg-red-2 text-red-9 q-mb-md">
                 {{ errorMessage }}
@@ -51,7 +59,9 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useAuth } from '../composables/useAuth';
 
 const { email, password, loading, errorMessage, handleLogin } = useAuth();
+const isPwdVisible = ref(false);
 </script>
