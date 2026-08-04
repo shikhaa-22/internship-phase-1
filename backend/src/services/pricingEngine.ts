@@ -1,7 +1,6 @@
 import pool from '../config/db';
 
 export async function calculateBookingPrice(serviceId: number, startTimeStr: string) {
-    // 1. Fetch base service info
     const [services]: any = await pool.execute(
         'SELECT base_price, duration_minutes FROM services WHERE id = ?', 
         [serviceId]
@@ -13,7 +12,6 @@ export async function calculateBookingPrice(serviceId: number, startTimeStr: str
     const dayOfWeek = start.getDay(); // 0 = Sunday, 6 = Saturday
     const timeString = start.toTimeString().split(' ')[0]; // HH:MM:SS
 
-    // 2. Fetch rules sorted by priority
     const [rules]: any = await pool.execute(
         `SELECT * FROM pricing_rules 
          WHERE (service_id = ? OR service_id IS NULL) 
@@ -23,7 +21,6 @@ export async function calculateBookingPrice(serviceId: number, startTimeStr: str
 
     let taxAmount = 0;
 
-    // 3. Loop through and apply matching rules
     for (const rule of rules) {
         let applyRule = false;
 

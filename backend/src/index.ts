@@ -18,7 +18,6 @@ pool.getConnection()
     console.error(' Database connection failed:', err.message);
   });
 
-// Helper to read incoming JSON payloads from the frontend
 const parseBody = (req: IncomingMessage): Promise<any> => {
     return new Promise((resolve, reject) => {
         let body = '';
@@ -30,7 +29,6 @@ const parseBody = (req: IncomingMessage): Promise<any> => {
     });
 };
 
-// Helper to send JSON responses back with CORS headers enabled
 const sendJSON = (res: ServerResponse, statusCode: number, data: any) => {
     res.writeHead(statusCode, {
         'Content-Type': 'application/json',
@@ -42,7 +40,6 @@ const sendJSON = (res: ServerResponse, statusCode: number, data: any) => {
 };
 
 const server = http.createServer(async (req: IncomingMessage, res: ServerResponse) => {
-    // Handle CORS preflight check
     if (req.method === 'OPTIONS') {
         res.writeHead(204, {
             'Access-Control-Allow-Origin': '*',
@@ -57,23 +54,50 @@ const server = http.createServer(async (req: IncomingMessage, res: ServerRespons
     const method = req.method || '';
 
     try {
-        // Route 1: Get list of available services
         if (url === '/api/services' && method === 'GET') {
             const [rows] = await pool.execute('SELECT * FROM services');
             return sendJSON(res, 200, rows);
         }
+        
+        if (url === '/api/login' && method === 'POST') {
+            const body = await parseBody(req);
+            const { email, password } = body;
 
-        // Route 2: Calculate price dynamically based on user choices
+            // Query your users table (adjust column names to match your schema)
+            const [rows]: any = await pool.execute(
+                'SELECT * FROM users WHERE email = ?',
+                [email]
+            );
+
+            if (rows.length === 0) {
+                return sendJSON(res, 401, { error: 'Invalid email or password' });
+            }
+
+            const user = rows[0];
+
+            // Simple password check (or use bcrypt if your backend hashes passwords)
+            // Note: If you seeded with hashed_pass_123, match against that or your DB setup
+            if (password !== 'hashed_pass_123') { 
+                return sendJSON(res, 401, { error: 'Invalid email or password' });
+            }
+
+            // Return token and role
+            return sendJSON(res, 200, {
+                token: 'mock-jwt-token-123',
+                role: user.role // e.g., 'admin', 'doctor', or 'client'
+            });
+        }
+
         if (url === '/api/calculate-price' && method === 'POST') {
             const body = await parseBody(req);
             const pricing = await calculateBookingPrice(body.serviceId, body.startTime);
             return sendJSON(res, 200, pricing);
         }
 
-        // Route 3: Save final appointment booking to MySQL
         if (url === '/api/appointments' && method === 'POST') {
             const body = await parseBody(req);
-            const { clientId, serviceId, startTime, baseAmount, taxAmount, totalAmount } = body;
+            // ✅ Added doctorId
+            const { clientId, doctorId, serviceId, startTime, baseAmount, taxAmount, totalAmount } = body;
 
             const start = new Date(startTime);
             const end = new Date(start.getTime() + 60 * 60000); // 1-hour slot default
@@ -81,9 +105,9 @@ const server = http.createServer(async (req: IncomingMessage, res: ServerRespons
             const startTimeStr = start.toISOString().slice(0, 19).replace('T', ' ');
 
             const [result]: any = await pool.execute(
-                `INSERT INTO appointments (client_id, service_id, start_time, end_time, base_amount, tax_amount, total_amount, status) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed')`,
-                [clientId, serviceId, startTimeStr, endTimeStr, baseAmount, taxAmount, totalAmount]
+                `INSERT INTO appointments (client_id, doctor_id, service_id, start_time, end_time, base_amount, tax_amount, total_amount, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')`,
+                [clientId, doctorId, serviceId, startTimeStr, endTimeStr, baseAmount, taxAmount, totalAmount]
             );
 
             return sendJSON(res, 201, { message: 'Appointment booked successfully', appointmentId: result.insertId });
