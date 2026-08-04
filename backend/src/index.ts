@@ -59,6 +59,58 @@ const server = http.createServer(async (req: IncomingMessage, res: ServerRespons
             
             return sendJSON(res, 200, rows);
         }
+
+        if (url === '/api/doctors' && method === 'GET') {
+            const [rows] = await pool.execute("SELECT id, name, email FROM users WHERE role = 'doctor'");
+            return sendJSON(res, 200, rows);
+        }
+
+        if (url.startsWith('/api/appointments/admin') && method === 'GET') {
+            const [rows] = await pool.execute(`
+                SELECT a.id, a.start_time, a.end_time, a.status, a.total_amount, 
+                       c.name AS client_name, d.name AS doctor_name, s.title AS service_title 
+                FROM appointments a 
+                JOIN users c ON a.client_id = c.id 
+                JOIN users d ON a.doctor_id = d.id 
+                JOIN services s ON a.service_id = s.id 
+                ORDER BY a.start_time DESC
+            `);
+            return sendJSON(res, 200, rows);
+        }
+
+        if (url.startsWith('/api/appointments/doctor') && method === 'GET') {
+            const [rows] = await pool.execute(`
+                SELECT a.id, a.start_time, a.end_time, a.status, a.total_amount, 
+                       u.name AS client_name, s.title AS service_title 
+                FROM appointments a 
+                JOIN users u ON a.client_id = u.id 
+                JOIN services s ON a.service_id = s.id 
+                ORDER BY a.start_time DESC
+            `);
+            return sendJSON(res, 200, rows);
+        }
+
+        if (url.startsWith('/api/appointments/client') && method === 'GET') {
+            const [rows] = await pool.execute(`
+                SELECT a.id, a.start_time, a.end_time, a.status, a.total_amount, 
+                       u.name AS doctor_name, s.title AS service_title 
+                FROM appointments a 
+                JOIN users u ON a.doctor_id = u.id 
+                JOIN services s ON a.service_id = s.id 
+                ORDER BY a.start_time DESC
+            `);
+            return sendJSON(res, 200, rows);
+        }
+
+        if (url === '/api/appointments/status' && method === 'POST') {
+            const body = await parseBody(req);
+            const { appointmentId, status } = body;
+            await pool.execute(
+                'UPDATE appointments SET status = ? WHERE id = ?',
+                [status, appointmentId]
+            );
+            return sendJSON(res, 200, { message: 'Appointment status updated successfully' });
+        }
         
         if (url === '/api/login' && method === 'POST') {
             const body = await parseBody(req);
@@ -82,10 +134,16 @@ const server = http.createServer(async (req: IncomingMessage, res: ServerRespons
                 return sendJSON(res, 401, { error: 'Invalid email or password' });
             }
 
-            // Return token and role
+            // Return token, role, and user details
             return sendJSON(res, 200, {
-                token: 'mock-jwt-token-123',
-                role: user.role // e.g., 'admin', 'doctor', or 'client'
+                token: `jwt-token-${user.id}`,
+                role: user.role,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role
+                }
             });
         }
 
@@ -97,21 +155,21 @@ const server = http.createServer(async (req: IncomingMessage, res: ServerRespons
 
         if (url === '/api/appointments' && method === 'POST') {
             const body = await parseBody(req);
-            // ✅ Added doctorId
-            const { clientId, doctorId, serviceId, startTime, baseAmount, taxAmount, totalAmount } = body;
+            const { clientId, doctorId, serviceId, startTime, baseAmount, taxAmount, totalAmount, status } = body;
 
             const start = new Date(startTime);
             const end = new Date(start.getTime() + 60 * 60000); // 1-hour slot default
             const endTimeStr = end.toISOString().slice(0, 19).replace('T', ' ');
             const startTimeStr = start.toISOString().slice(0, 19).replace('T', ' ');
+            const initialStatus = status || 'pending';
 
             const [result]: any = await pool.execute(
                 `INSERT INTO appointments (client_id, doctor_id, service_id, start_time, end_time, base_amount, tax_amount, total_amount, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')`,
-                [clientId, doctorId, serviceId, startTimeStr, endTimeStr, baseAmount, taxAmount, totalAmount]
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [clientId, doctorId, serviceId, startTimeStr, endTimeStr, baseAmount, taxAmount, totalAmount, initialStatus]
             );
 
-            return sendJSON(res, 201, { message: 'Appointment booked successfully', appointmentId: result.insertId });
+            return sendJSON(res, 201, { message: 'Appointment booked successfully', appointmentId: result.insertId, status: initialStatus });
         }
 
         sendJSON(res, 404, { error: 'Route not found' });

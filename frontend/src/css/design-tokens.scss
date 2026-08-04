@@ -1,0 +1,19 @@
+// Minimal Design System Tokens
+@use 'sass:map';
+
+$brand-colors: (
+  primary: #0d9488,
+  slate-dark: #0f172a,
+  slate-body: #334155,
+  slate-muted: #64748b,
+  border: #e2e8f0,
+  bg-page: #f8fafc,
+);
+
+:root {
+  --brand-primary: map.get($brand-colors, primary);
+  --text-dark: map.get($brand-colors, slate-dark);
+  --border-subtle: map.get($brand-colors, border);
+  --bg-page: map.get($brand-colors, bg-page);
+  --radius-md: 8px;
+}

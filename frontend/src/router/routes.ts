@@ -4,17 +4,17 @@ const routes = [
     component: () => import('../layouts/MainLayout.vue'),
     children: [
       { path: '', component: () => import('../pages/LoginPage.vue') },
-      { 
-        path: 'admin/dashboard', 
-        component: () => import('../pages/AdminDashboard.vue') 
+      {
+        path: 'admin/dashboard',
+        component: () => import('../pages/AdminDashboard.vue'),
       },
-      { 
-        path: 'doctor/dashboard', 
-        component: () => import('../pages/DoctorDashboard.vue') 
+      {
+        path: 'doctor/dashboard',
+        component: () => import('../pages/DoctorDashboard.vue'),
       },
-      { 
-        path: 'client/dashboard', 
-        component: () => import('../pages/ClientDashboard.vue') 
+      {
+        path: 'client/dashboard',
+        component: () => import('../pages/ClientDashboard.vue'),
       },
     ],
   },
