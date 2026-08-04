@@ -4,7 +4,19 @@ import pool from './config/db';
 import { calculateBookingPrice } from './services/pricingEngine';
 
 dotenv.config();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
+
+
+
+// Test database connection
+pool.getConnection()
+  .then((connection) => {
+    console.log(' Successfully connected to MySQL database!');
+    connection.release();
+  })
+  .catch((err) => {
+    console.error(' Database connection failed:', err.message);
+  });
 
 // Helper to read incoming JSON payloads from the frontend
 const parseBody = (req: IncomingMessage): Promise<any> => {
