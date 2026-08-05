@@ -1,11 +1,11 @@
 <template>
   <q-page class="q-pa-md">
+    <!-- Header Card -->
     <q-card elevated bordered class="q-pa-md shadow-1" style="border-radius: 12px">
       <q-card-section class="row items-center justify-between">
         <div>
           <div class="text-h5 text-weight-bold text-primary">Hello {{ userName }}</div>
           <div class="text-subtitle2 text-grey-7">Welcome to your client dashboard</div>
-          
         </div>
         <q-btn color="negative" elevated icon="logout" label="Logout" no-caps @click="handleLogout" />
       </q-card-section>
@@ -13,9 +13,14 @@
     
     <div style="height: 20px;"></div>
       
+    <!-- Booking Section Card -->
     <q-card elevated bordered class="q-pa-md shadow-1" style="border-radius: 12px">
+      <q-card-section class="q-pb-none">
+        <div class="text-h6 text-weight-bold text-primary">
+          <q-icon name="event" class="q-mr-xs" /> Book an Appointment
+        </div>
+      </q-card-section>
       
-      <div style="height: 20px;"></div>
       <q-card-section class="q-pa-md">
         <div class="row q-col-gutter-md">
           <div class="col-12 col-md-4">
@@ -65,22 +70,127 @@
         </div>
         <div style="height: 20px;"></div>
         <div class="row q-mt-md items-center">
-          
           <div class="col">
             <q-btn label="Calculate Price" color="primary" @click="calculatePrice" />
             <q-btn label="Book Appointment" color="positive" class="q-ml-sm" @click="bookAppointment" />
           </div>
-          <div class="col-auto text-weight-medium">Price: <span class="text-primary">{{ priceDisplay }}</span></div>
+          <div class="col-auto text-weight-medium">Price: <span class="text-primary text-h6">{{ priceDisplay }}</span></div>
         </div>
       </q-card-section>
     </q-card>
+
+    <div style="height: 20px;"></div>
+
+    <!-- Feature 1: My Appointments & History Section -->
+    <q-card elevated bordered class="q-pa-md shadow-1" style="border-radius: 12px">
+      <q-card-section class="row items-center justify-between">
+        <div class="text-h6 text-weight-bold text-primary">
+          <q-icon name="history" class="q-mr-xs" /> My Appointments & History
+        </div>
+        <q-btn flat round icon="refresh" color="primary" @click="loadPatientHistory" />
+      </q-card-section>
+
+      <q-card-section>
+        <q-table
+          flat
+          bordered
+          :rows="historyItems"
+          :columns="columns"
+          row-key="id"
+          :loading="loadingHistory"
+          no-data-label="No appointments found"
+        >
+          <!-- Status Column Chip -->
+          <template #body-cell-status="props">
+            <q-td :props="props">
+              <q-chip
+                :color="getStatusColor(props.row.status)"
+                text-color="white"
+                size="sm"
+                class="text-weight-bold text-capitalize"
+              >
+                {{ props.row.status }}
+              </q-chip>
+            </q-td>
+          </template>
+
+          <!-- Amount Column -->
+          <template #body-cell-total_amount="props">
+            <q-td :props="props">
+              <span class="text-weight-bold text-primary">₹ {{ Number(props.row.total_amount).toFixed(2) }}</span>
+            </q-td>
+          </template>
+
+          <!-- Actions Column for Medical Notes & Prescriptions -->
+          <template #body-cell-actions="props">
+            <q-td :props="props" class="text-center">
+              <q-btn
+                v-if="props.row.clinical_notes || props.row.prescription"
+                color="secondary"
+                size="sm"
+                icon="assignment"
+                label="View Prescription"
+                no-caps
+                @click="openMedicalSummary(props.row)"
+              />
+              <span v-else class="text-grey-6 text-caption">No notes available</span>
+            </q-td>
+          </template>
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <!-- Feature 2: Prescription & Clinical Notes Modal Dialog -->
+    <q-dialog v-model="showMedicalModal">
+      <q-card style="min-width: 450px; border-radius: 16px">
+        <q-card-section class="bg-primary text-white row items-center justify-between">
+          <div>
+            <div class="text-h6 text-weight-bold">Medical Summary</div>
+            <div class="text-caption text-blue-2">{{ selectedHistoryRecord?.doctor_name }} • {{ selectedHistoryRecord?.service_title }}</div>
+          </div>
+          <q-btn flat round icon="close" color="white" v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="q-pa-md">
+          <div class="text-caption text-grey-7 q-mb-md">
+            <strong>Date:</strong> {{ selectedHistoryRecord?.start_time }}
+          </div>
+
+          <!-- Clinical Notes Section -->
+          <div v-if="selectedHistoryRecord?.clinical_notes" class="q-mb-md">
+            <div class="text-subtitle2 text-weight-bold text-primary row items-center q-mb-xs">
+              <q-icon name="notes" class="q-mr-xs" /> Doctor Clinical Notes
+            </div>
+            <q-card flat class="bg-blue-1 q-pa-sm text-body2 text-grey-9" style="border-left: 4px solid #1976D2; border-radius: 4px">
+              {{ selectedHistoryRecord.clinical_notes }}
+            </q-card>
+          </div>
+
+          <!-- Prescription Section -->
+          <div v-if="selectedHistoryRecord?.prescription" class="q-mb-md">
+            <div class="text-subtitle2 text-weight-bold text-positive row items-center q-mb-xs">
+              <q-icon name="medication" class="q-mr-xs" /> Prescribed Medications
+            </div>
+            <q-card flat class="bg-green-1 q-pa-sm text-body2 text-grey-9" style="border-left: 4px solid #21BA45; border-radius: 4px">
+              {{ selectedHistoryRecord.prescription }}
+            </q-card>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-pa-sm bg-grey-2">
+          <q-btn flat label="Print" icon="print" color="primary" @click="printPrescription" />
+          <q-btn flat label="Close" color="grey-8" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { useQuasar } from 'quasar';
+import { useQuasar, type QTableColumn } from 'quasar';
 
 const router = useRouter();
 const $q = useQuasar();
@@ -106,6 +216,20 @@ interface AppointmentRow {
   status: string;
 }
 
+interface PatientHistoryItem {
+  id: number;
+  start_time: string;
+  end_time: string;
+  status: string;
+  clinical_notes: string | null;
+  prescription: string | null;
+  cancellation_reason: string | null;
+  total_amount: number | string;
+  doctor_name: string;
+  service_title: string;
+  add_ons_summary: string | null;
+}
+
 // State refs
 const services = ref<Service[]>([]);
 const doctors = ref<Doctor[]>([]);
@@ -114,6 +238,22 @@ const selectedDoctor = ref<number | null>(null);
 const selectedSlot = ref<string | null>(null);
 const date = ref('');
 const price = ref<number | null>(null);
+
+// History & Medical Summary State
+const historyItems = ref<PatientHistoryItem[]>([]);
+const loadingHistory = ref(false);
+const showMedicalModal = ref(false);
+const selectedHistoryRecord = ref<PatientHistoryItem | null>(null);
+
+const columns: QTableColumn[] = [
+  { name: 'start_time', label: 'Date & Time', field: 'start_time', align: 'left', sortable: true },
+  { name: 'doctor_name', label: 'Doctor', field: 'doctor_name', align: 'left', sortable: true },
+  { name: 'service_title', label: 'Service', field: 'service_title', align: 'left' },
+  { name: 'add_ons_summary', label: 'Add-Ons', field: (row: PatientHistoryItem) => row.add_ons_summary || 'None', align: 'left' },
+  { name: 'total_amount', label: 'Total Amount', field: 'total_amount', align: 'right', sortable: true },
+  { name: 'status', label: 'Status', field: 'status', align: 'center', sortable: true },
+  { name: 'actions', label: 'Medical Notes', field: 'actions', align: 'center' },
+];
 
 const servicesOptions = computed(() => services.value.map(s => ({ id: s.id, title: s.title })));
 
@@ -166,7 +306,6 @@ const loadDoctors = async () => {
     const url = selectedService.value ? `${API_BASE}/doctors?serviceId=${selectedService.value}` : `${API_BASE}/doctors`;
     const resp = await fetch(url);
     const data = await resp.json();
-    console.log('doctors api ->', url, data);
     doctors.value = Array.isArray(data) ? data : [];
     if (!doctors.value.length) {
       $q.notify({ type: 'info', message: 'No doctors available for the selected speciality' });
@@ -177,9 +316,47 @@ const loadDoctors = async () => {
   }
 };
 
+const loadPatientHistory = async () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return;
+    const user = JSON.parse(userStr);
+    if (!user || !user.id) return;
+
+    loadingHistory.value = true;
+    const res = await fetch(`${API_BASE}/patient/history?clientId=${user.id}`);
+    if (res.ok) {
+      historyItems.value = await res.json();
+    }
+  } catch (err: unknown) {
+    console.error('Error fetching patient history:', err);
+  } finally {
+    loadingHistory.value = false;
+  }
+};
+
+const getStatusColor = (status: string) => {
+  const s = (status || '').toLowerCase();
+  if (s === 'confirmed') return 'primary';
+  if (s === 'completed') return 'positive';
+  if (s === 'cancelled') return 'negative';
+  if (s === 'pending') return 'warning';
+  return 'grey-7';
+};
+
+const openMedicalSummary = (item: PatientHistoryItem) => {
+  selectedHistoryRecord.value = item;
+  showMedicalModal.value = true;
+};
+
+const printPrescription = () => {
+  window.print();
+};
+
 onMounted(() => {
   void loadServices();
   void loadDoctors();
+  void loadPatientHistory();
 });
 
 // Load booked appointments for selected doctor & date, then compute available slots
@@ -359,6 +536,7 @@ const bookAppointment = async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Booking failed');
     $q.notify({ type: 'positive', message: 'Appointment booked successfully' });
+    void loadPatientHistory(); // Refresh history automatically
   } 
   catch (err: unknown) {
     console.error(err);
@@ -367,3 +545,4 @@ const bookAppointment = async () => {
   }
 };
 </script>
+
