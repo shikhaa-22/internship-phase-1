@@ -182,6 +182,13 @@ INSERT INTO appointments (client_id, doctor_id, service_id, start_time, end_time
     (SELECT id FROM services WHERE title = 'Cardiac Consultation' LIMIT 1),
     '2026-08-05 15:00:00', '2026-08-05 16:00:00', 195.00, 19.50, 214.50, 'confirmed', NULL, NULL, NULL
 ),
+-- Dr. Emily Chen Appointment Example: Shikhaa Prabhudesai (Full Body Checkup)
+(
+    (SELECT id FROM users WHERE email = 'shikha@example.com' LIMIT 1),
+    (SELECT id FROM users WHERE email = 'drchen@example.com' LIMIT 1),
+    (SELECT id FROM services WHERE title = 'Full Body Checkup' LIMIT 1),
+    '2026-08-05 13:00:00', '2026-08-05 14:00:00', 115.00, 11.50, 126.50, 'confirmed', NULL, NULL, NULL
+),
 
 -- TOMORROW (2026-08-06)
 (
