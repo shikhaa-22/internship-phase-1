@@ -28,6 +28,9 @@ export function useAuth() {
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('role', data.role);
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
 
       if (data.role === 'admin') {
         void router.push('/admin/dashboard');
@@ -38,11 +41,25 @@ export function useAuth() {
       }
     } catch {
       let role = 'client';
-      if (email.value.includes('admin')) role = 'admin';
-      else if (email.value.includes('dr') || email.value.includes('doctor')) role = 'doctor';
+      let mockId = 1;
+      let mockName = 'Shikhaa Prabhudesai';
+
+      if (email.value.includes('admin')) {
+        role = 'admin';
+        mockId = 4;
+        mockName = 'Admin User';
+      } else if (email.value.includes('dr') || email.value.includes('doctor')) {
+        role = 'doctor';
+        mockId = 2;
+        mockName = 'Dr. Robert Smith';
+      }
 
       localStorage.setItem('token', 'mock-token-123');
       localStorage.setItem('role', role);
+      localStorage.setItem(
+        'user',
+        JSON.stringify({ id: mockId, name: mockName, email: email.value, role }),
+      );
 
       if (role === 'admin') void router.push('/admin/dashboard');
       else if (role === 'doctor') void router.push('/doctor/dashboard');
