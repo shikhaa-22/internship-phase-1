@@ -20,18 +20,21 @@ export function useAuth() {
         body: JSON.stringify({ email: email.value, password: password.value }),
       });
 
-      if (!response.ok) {
-        throw new Error('Invalid email or password');
-      }
-
       const data = await response.json();
 
+      if (!response.ok) {
+        errorMessage.value = data.error || 'Invalid email or password';
+        return;
+      }
+
+      // Save user session
       localStorage.setItem('token', data.token);
       localStorage.setItem('role', data.role);
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
+      // Redirect based on role
       if (data.role === 'admin') {
         void router.push('/admin/dashboard');
       } else if (data.role === 'doctor') {
@@ -39,31 +42,10 @@ export function useAuth() {
       } else {
         void router.push('/client/dashboard');
       }
-    } catch {
-      let role = 'client';
-      let mockId = 1;
-      let mockName = 'Shikhaa Prabhudesai';
-
-      if (email.value.includes('admin')) {
-        role = 'admin';
-        mockId = 4;
-        mockName = 'Admin User';
-      } else if (email.value.includes('dr') || email.value.includes('doctor')) {
-        role = 'doctor';
-        mockId = 2;
-        mockName = 'Dr. Robert Smith';
-      }
-
-      localStorage.setItem('token', 'mock-token-123');
-      localStorage.setItem('role', role);
-      localStorage.setItem(
-        'user',
-        JSON.stringify({ id: mockId, name: mockName, email: email.value, role }),
-      );
-
-      if (role === 'admin') void router.push('/admin/dashboard');
-      else if (role === 'doctor') void router.push('/doctor/dashboard');
-      else void router.push('/client/dashboard');
+    } catch (err) {
+      console.error('Login request error:', err);
+      const message = err instanceof Error ? err.message : 'Unable to connect to login server';
+      errorMessage.value = message;
     } finally {
       loading.value = false;
     }

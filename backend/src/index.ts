@@ -208,14 +208,17 @@ app.post('/api/login', async (req: Request, res: Response) => {
     const { email, password } = req.body;
     console.log('Login attempt received:', { email });
 
-    const [rows]: any = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+    const [rows]: any = await pool.execute('SELECT * FROM users WHERE LOWER(email) = ?', [cleanEmail]);
 
     if (!rows || rows.length === 0) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     const user = rows[0];
-    const storedPassword = user.password ?? user.password_hash ?? '';
+    const storedPassword = user.password_hash ?? user.password ?? '';
+
+    // Strict Database Password Check
     const passwordMatches = password === storedPassword;
 
     if (!passwordMatches) {

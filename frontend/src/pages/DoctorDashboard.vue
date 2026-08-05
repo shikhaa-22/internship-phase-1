@@ -883,6 +883,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { appointmentService } from '../services/appointmentService';
 
 interface Appointment {
   id: number;
@@ -1115,17 +1116,7 @@ const setDateTo = (dStr: string) => {
 const fetchAppointments = async () => {
   loading.value = true;
   try {
-    const API_BASE = import.meta.env.API_URL || 'http://localhost:5001/api';
-    const response = await fetch(
-      `${API_BASE}/appointments/doctor?doctorId=${currentDoctorId.value}&t=${Date.now()}`,
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-      appointments.value = data;
-    } else {
-      appointments.value = [];
-    }
+    appointments.value = await appointmentService.getDoctorAppointments(currentDoctorId.value);
   } catch (err) {
     console.error('API fetch failed:', err);
     appointments.value = [];
@@ -1150,25 +1141,18 @@ const confirmCompletion = async () => {
 
   submittingComplete.value = true;
   try {
-    const API_BASE = import.meta.env.API_URL || 'http://localhost:5001/api';
-    const response = await fetch(`${API_BASE}/appointments/complete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        appointmentId: targetAppointment.value.id,
-        clinicalNotes: notesText,
-        prescription: rxText,
-      }),
+    await appointmentService.completeConsultation({
+      appointmentId: targetAppointment.value.id,
+      clinicalNotes: notesText,
+      prescription: rxText,
     });
 
-    if (response.ok) {
-      if (targetAppointment.value) {
-        targetAppointment.value.status = 'completed';
-        targetAppointment.value.clinical_notes = notesText;
-        targetAppointment.value.prescription = rxText;
-      }
-      await fetchAppointments();
+    if (targetAppointment.value) {
+      targetAppointment.value.status = 'completed';
+      targetAppointment.value.clinical_notes = notesText;
+      targetAppointment.value.prescription = rxText;
     }
+    await fetchAppointments();
   } catch (err) {
     console.error('Failed to complete consultation:', err);
   } finally {
@@ -1192,20 +1176,13 @@ const confirmBlockSlot = async () => {
     const hourStr = targetBlockHour.value.toString().padStart(2, '0');
     const startTimeStr = `${selectedDate.value} ${hourStr}:00:00`;
 
-    const API_BASE = import.meta.env.API_URL || 'http://localhost:5001/api';
-    const response = await fetch(`${API_BASE}/appointments/block-slot`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        doctorId: currentDoctorId.value,
-        startTime: startTimeStr,
-        breakReason: blockReasonInput.value.trim(),
-      }),
+    await appointmentService.blockSlot({
+      doctorId: currentDoctorId.value,
+      startTime: startTimeStr,
+      breakReason: blockReasonInput.value.trim(),
     });
 
-    if (response.ok) {
-      await fetchAppointments();
-    }
+    await fetchAppointments();
   } catch (err) {
     console.error('Failed to block slot:', err);
   } finally {
@@ -1216,16 +1193,8 @@ const confirmBlockSlot = async () => {
 
 const unblockSlot = async (appointmentId: number) => {
   try {
-    const API_BASE = import.meta.env.API_URL || 'http://localhost:5001/api';
-    const response = await fetch(`${API_BASE}/appointments/unblock-slot`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appointmentId }),
-    });
-
-    if (response.ok) {
-      await fetchAppointments();
-    }
+    await appointmentService.unblockSlot(appointmentId);
+    await fetchAppointments();
   } catch (err) {
     console.error('Failed to unblock slot:', err);
   }
@@ -1240,11 +1209,7 @@ const openPatientHistory = async (clientId: number, clientName: string, clientEm
   loadingHistory.value = true;
 
   try {
-    const API_BASE = import.meta.env.API_URL || 'http://localhost:5001/api';
-    const response = await fetch(`${API_BASE}/patient/history?clientId=${clientId}`);
-    if (response.ok) {
-      patientHistoryList.value = await response.json();
-    }
+    patientHistoryList.value = await appointmentService.getPatientHistory(clientId);
   } catch (err) {
     console.error('Failed to fetch patient history:', err);
   } finally {
@@ -1256,11 +1221,7 @@ const openPatientHistory = async (clientId: number, clientName: string, clientEm
 const fetchAvailableAddOns = async () => {
   loadingAddOns.value = true;
   try {
-    const API_BASE = import.meta.env.API_URL || 'http://localhost:5001/api';
-    const response = await fetch(`${API_BASE}/add-ons`);
-    if (response.ok) {
-      availableAddOns.value = await response.json();
-    }
+    availableAddOns.value = await appointmentService.getAvailableAddOns();
   } catch (err) {
     console.error('Failed to fetch add-ons:', err);
   } finally {
@@ -1285,21 +1246,13 @@ const submitAddOns = async () => {
 
   submittingAddOns.value = true;
   try {
-    const API_BASE = import.meta.env.API_URL || 'http://localhost:5001/api';
-    const response = await fetch(`${API_BASE}/appointments/add-ons`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        appointmentId: targetAppointment.value.id,
-        addOnIds: newlySelectedIds,
-      }),
+    const result = await appointmentService.attachAddOns({
+      appointmentId: targetAppointment.value.id,
+      addOnIds: newlySelectedIds,
     });
 
-    if (response.ok) {
-      const result = await response.json();
-      if (result.pricing && targetAppointment.value) {
-        targetAppointment.value.total_amount = result.pricing.totalAmount;
-      }
+    if (result.pricing && targetAppointment.value) {
+      targetAppointment.value.total_amount = result.pricing.totalAmount;
     }
   } catch (err) {
     console.error('Failed to attach add-ons:', err);
@@ -1337,21 +1290,10 @@ const confirmCancellation = async () => {
   }
 
   try {
-    const API_BASE = import.meta.env.API_URL || 'http://localhost:5001/api';
-    const response = await fetch(`${API_BASE}/appointments/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        appointmentId: targetId,
-        status: 'cancelled',
-        cancellationReason: reasonText,
-        cancellation_reason: reasonText,
-      }),
+    await appointmentService.cancelAppointment({
+      appointmentId: targetId,
+      cancellationReason: reasonText,
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to update status on server');
-    }
 
     await fetchAppointments();
   } catch (err) {
