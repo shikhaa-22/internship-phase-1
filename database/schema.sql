@@ -108,12 +108,12 @@ CREATE TABLE appointment_add_ons (
 
 -- Insert Users (Client, Doctor, Admin)
 INSERT IGNORE INTO users (name, email, password_hash, role) VALUES 
-('Shikhaa Prabhudesai', 'shikha@example.com', 'patient123', 'client'),
-('Dr. Robert Smith', 'drsmith@example.com', 'doctor123', 'doctor'),
-('Dr. Emily Chen', 'drchen@example.com', 'doctor123', 'doctor'),
-('Admin User', 'admin@example.com', 'admin123', 'admin'),
-('John Doe', 'johndoe@example.com', 'patient123', 'client'),
-('Alice Walker', 'alice@example.com', 'patient123', 'client');
+('Shikhaa Prabhudesai', 'shikha@example.com', 'hashed_pass_123', 'client'),
+('Dr. Robert Smith', 'drsmith@example.com', 'hashed_pass_123', 'doctor'),
+('Dr. Emily Chen', 'drchen@example.com', 'hashed_pass_123', 'doctor'),
+('Admin User', 'admin@example.com', 'hashed_pass_123', 'admin'),
+('John Doe', 'johndoe@example.com', 'hashed_pass_123', 'client'),
+('Alice Walker', 'alice@example.com', 'hashed_pass_123', 'client');
 
 -- Insert Specialization Categories
 INSERT INTO specializations (name) VALUES 

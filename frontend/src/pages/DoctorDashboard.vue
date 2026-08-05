@@ -3,7 +3,7 @@
     <div class="max-width-container mx-auto">
       <!-- Header Banner -->
       <q-card
-        flat
+        elevated
         bordered
         class="q-pa-sm q-px-md q-mb-sm bg-white border-slate"
         style="border-radius: 10px"
@@ -27,7 +27,7 @@
           <div class="row items-center q-gutter-xs">
             <q-btn
               color="blue-7"
-              outline
+              
               dense
               class="q-px-sm"
               icon="refresh"
@@ -37,8 +37,8 @@
               @click="fetchAppointments"
             />
             <q-btn
-              color="grey-7"
-              flat
+              color="red-7"
+              elevated
               dense
               class="q-px-sm"
               icon="logout"
@@ -55,7 +55,7 @@
         <!-- Prominent Calendar Card (50% Width) -->
         <div class="col-12 col-md-6">
           <q-card
-            flat
+            elevated
             bordered
             class="bg-white border-slate fill-height"
             style="border-radius: 10px"
@@ -69,7 +69,7 @@
                 <div class="row q-gutter-xs">
                   <q-btn
                     size="sm"
-                    unelevated
+                    elevated
                     no-caps
                     :color="selectedDate === todayDate ? 'blue-7' : 'slate-100'"
                     :text-color="selectedDate === todayDate ? 'white' : 'slate-700'"
@@ -79,7 +79,7 @@
                   />
                   <q-btn
                     size="sm"
-                    unelevated
+                    elevated
                     no-caps
                     :color="selectedDate === tomorrowDate ? 'blue-7' : 'slate-100'"
                     :text-color="selectedDate === tomorrowDate ? 'white' : 'slate-700'"
@@ -113,7 +113,7 @@
           <div class="row q-col-gutter-xs fill-height">
             <div class="col-6 col-sm-3">
               <q-card
-                flat
+                elevated
                 bordered
                 class="bg-slate-50 border-slate fill-height column items-center justify-center q-pa-sm text-center"
                 style="border-radius: 10px"
@@ -126,7 +126,7 @@
             </div>
             <div class="col-6 col-sm-3">
               <q-card
-                flat
+                elevated
                 bordered
                 class="bg-blue-50 border-blue-subtle fill-height column items-center justify-center q-pa-sm text-center"
                 style="border-radius: 10px"
@@ -139,7 +139,7 @@
             </div>
             <div class="col-6 col-sm-3">
               <q-card
-                flat
+                elevated
                 bordered
                 class="bg-green-50 border-emerald-subtle fill-height column items-center justify-center q-pa-sm text-center"
                 style="border-radius: 10px"
@@ -152,7 +152,7 @@
             </div>
             <div class="col-6 col-sm-3">
               <q-card
-                flat
+                elevated
                 bordered
                 class="bg-amber-50 border-amber-subtle fill-height column items-center justify-center q-pa-sm text-center"
                 style="border-radius: 10px"
@@ -197,7 +197,7 @@
           <!-- OCCUPIED SLOT (Confirmed) -->
           <q-card
             v-if="slot.appointment && slot.appointment.status === 'confirmed'"
-            flat
+            elevated
             bordered
             class="slot-card occupied-card bg-white"
           >
@@ -239,7 +239,7 @@
                     {{ slot.appointment.client_name }}
                   </span>
                   <q-btn
-                    flat
+                    elevated
                     round
                     dense
                     size="sm"
@@ -274,7 +274,7 @@
               <div class="col-12 col-sm-4 row justify-end q-gutter-xs">
                 <q-btn
                   color="positive"
-                  unelevated
+                  elevated
                   size="sm"
                   class="q-px-sm text-weight-bold"
                   icon="medication"
@@ -294,7 +294,7 @@
                 />
                 <q-btn
                   color="red-6"
-                  flat
+                  elevated
                   size="sm"
                   class="q-px-sm text-weight-bold"
                   icon="cancel"
@@ -309,7 +309,7 @@
           <!-- COMPLETED CONSULTATION SLOT -->
           <q-card
             v-else-if="slot.appointment && slot.appointment.status === 'completed'"
-            flat
+            elevated
             bordered
             class="slot-card completed-card bg-white"
           >
@@ -392,7 +392,7 @@
           <!-- BLOCKED BREAK SLOT -->
           <q-card
             v-else-if="slot.appointment && slot.appointment.status === 'blocked'"
-            flat
+            elevated
             bordered
             class="slot-card blocked-card bg-white"
           >
@@ -435,7 +435,7 @@
           <!-- OCCUPIED SLOT (Cancelled) -->
           <q-card
             v-else-if="slot.appointment && slot.appointment.status === 'cancelled'"
-            flat
+            elevated
             bordered
             class="slot-card cancelled-card bg-white"
           >
@@ -479,7 +479,7 @@
           </q-card>
 
           <!-- VACANT SLOT -->
-          <q-card v-else flat bordered class="slot-card vacant-card bg-white">
+          <q-card v-else elevated bordered class="slot-card vacant-card bg-white">
             <q-card-section class="row items-center justify-between q-pa-sm q-px-md">
               <div class="row items-center q-gutter-sm">
                 <q-chip
@@ -499,6 +499,15 @@
               </div>
 
               <div class="row items-center q-gutter-xs">
+                <q-chip
+                  color="amber-9"
+                  text-color="white"
+                  size="sm"
+                  icon="check_circle"
+                  elevated
+                >
+                  Open
+                </q-chip>
                 <q-btn
                   color="amber-9"
                   outline
@@ -509,15 +518,7 @@
                   no-caps
                   @click="openBlockDialog(slot.hour)"
                 />
-                <q-chip
-                  color="slate-100"
-                  text-color="slate-600"
-                  size="sm"
-                  icon="check_circle"
-                  dense
-                >
-                  Open
-                </q-chip>
+                
               </div>
             </q-card-section>
           </q-card>
@@ -533,7 +534,7 @@
             <q-icon name="medication" class="q-mr-xs" size="sm" />
             Add Prescription & Consultation Notes
           </div>
-          <q-btn icon="close" flat round dense v-close-popup />
+          <q-btn icon="close" elevated round dense v-close-popup />
         </q-card-section>
 
         <q-card-section v-if="targetAppointment" class="q-pt-none">
@@ -568,12 +569,12 @@
             />
 
             <div class="row justify-end q-gutter-xs">
-              <q-btn label="Cancel" flat no-caps dense v-close-popup />
+              <q-btn label="Cancel" elevated no-caps dense v-close-popup />
               <q-btn
                 label="Save Prescription & Notes"
                 color="positive"
                 type="submit"
-                unelevated
+                elevated
                 no-caps
                 dense
                 class="q-px-sm"
@@ -593,7 +594,7 @@
             <q-icon name="block" class="q-mr-xs" size="sm" />
             Mark Time Slot as Unavailable
           </div>
-          <q-btn icon="close" flat round dense v-close-popup />
+          <q-btn icon="close" elevated round dense v-close-popup />
         </q-card-section>
 
         <q-card-section class="q-pt-none">
@@ -615,12 +616,12 @@
             />
 
             <div class="row justify-end q-gutter-xs">
-              <q-btn label="Cancel" flat no-caps dense v-close-popup />
+              <q-btn label="Cancel" elevated no-caps dense v-close-popup />
               <q-btn
                 label="Confirm Block"
                 color="amber-8"
                 type="submit"
-                unelevated
+                elevated
                 no-caps
                 dense
                 class="q-px-sm"
@@ -645,7 +646,7 @@
               <div class="text-body2 text-slate-600">{{ patientHistoryEmail }}</div>
             </div>
           </div>
-          <q-btn icon="close" flat round dense v-close-popup />
+          <q-btn icon="close" elevated round dense v-close-popup />
         </q-card-section>
 
         <q-separator />
@@ -666,7 +667,7 @@
             <q-card
               v-for="item in patientHistoryList"
               :key="item.id"
-              flat
+              elevated
               bordered
               class="bg-slate-50 border-slate"
               style="border-radius: 8px"
@@ -730,7 +731,7 @@
             <q-icon name="medical_services" class="q-mr-xs" size="sm" />
             Add Recommended Test / Service
           </div>
-          <q-btn icon="close" flat round dense v-close-popup />
+          <q-btn icon="close" elevated round dense v-close-popup />
         </q-card-section>
 
         <q-card-section v-if="targetAppointment" class="q-pt-none">
@@ -809,12 +810,12 @@
             </div>
 
             <div class="row justify-end q-gutter-xs">
-              <q-btn label="Cancel" flat no-caps dense v-close-popup />
+              <q-btn label="Cancel" elevated no-caps dense v-close-popup />
               <q-btn
                 label="Attach Selected Services"
                 color="blue-7"
                 type="submit"
-                unelevated
+                elevated
                 no-caps
                 dense
                 class="q-px-sm"
@@ -835,7 +836,7 @@
             <q-icon name="warning" class="q-mr-xs" size="sm" />
             Cancel Appointment
           </div>
-          <q-btn icon="close" flat round dense v-close-popup />
+          <q-btn icon="close" elevated round dense v-close-popup />
         </q-card-section>
 
         <q-card-section v-if="targetAppointment" class="q-pt-none">
@@ -861,12 +862,12 @@
             />
 
             <div class="row justify-end q-gutter-xs q-mt-md">
-              <q-btn label="Dismiss" flat no-caps dense v-close-popup />
+              <q-btn label="Dismiss" elevated no-caps dense v-close-popup />
               <q-btn
                 label="Confirm Cancellation"
                 color="red-7"
                 type="submit"
-                unelevated
+                elevated
                 no-caps
                 dense
                 class="q-px-sm"

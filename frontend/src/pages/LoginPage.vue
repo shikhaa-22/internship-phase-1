@@ -1,8 +1,8 @@
 <template>
-  <q-page class="row items-center justify-center bg-slate-100 q-pa-md">
-    <div style="width: 100%; max-width: 440px">
+  <q-page class="row items-center justify-center bg-slate-100 q-pa-md" >
+    <div style="width: 100%; max-width: 550px;" >
       <q-card
-        flat
+        elevated
         bordered
         class="q-pa-lg bg-white border-slate shadow-3"
         style="border-radius: 16px"
@@ -11,55 +11,21 @@
         <q-card-section class="text-center q-pb-none">
           <q-avatar
             size="56px"
-            color="blue-7"
+            color="primary"
             text-color="white"
             icon="medical_services"
             class="q-mb-sm shadow-1"
           />
-          <div class="text-h5 text-weight-bold text-slate-900">Healthcare Portal</div>
+          <div style="height: 10px;"></div>
+          
+          <div class="text-h5 text-weight-bold text-slate-900">Appointment Booking System</div>
           <div class="text-body2 text-slate-600 q-mt-xs">
             Sign in to manage appointments & records
           </div>
+          <div style="height: 30px;"></div>
         </q-card-section>
 
-        <!-- Quick Demo Account Selector -->
-        <q-card-section class="q-py-md">
-          <div class="text-caption text-slate-500 text-weight-bold text-center q-mb-xs">
-            QUICK DEMO LOGIN
-          </div>
-          <div class="row q-gutter-xs justify-center">
-            <q-chip
-              clickable
-              color="blue-1"
-              text-color="blue-9"
-              icon="medical_services"
-              class="text-weight-bold"
-              @click="fillDemoAccount('doctor')"
-            >
-              Doctor
-            </q-chip>
-            <q-chip
-              clickable
-              color="green-1"
-              text-color="green-9"
-              icon="person"
-              class="text-weight-bold"
-              @click="fillDemoAccount('patient')"
-            >
-              Patient
-            </q-chip>
-            <q-chip
-              clickable
-              color="purple-1"
-              text-color="purple-9"
-              icon="admin_panel_settings"
-              class="text-weight-bold"
-              @click="fillDemoAccount('admin')"
-            >
-              Admin
-            </q-chip>
-          </div>
-        </q-card-section>
+        
 
         <q-card-section class="q-pt-none">
           <!-- Error Banner -->
@@ -87,7 +53,7 @@
               class="text-body1"
             >
               <template #prepend>
-                <q-icon name="email" color="blue-7" />
+                <q-icon name="email" color="primary" />
               </template>
             </q-input>
 
@@ -101,7 +67,7 @@
               class="text-body1"
             >
               <template #prepend>
-                <q-icon name="lock" color="blue-7" />
+                <q-icon name="lock" color="primary" />
               </template>
               <template #append>
                 <q-icon
@@ -111,11 +77,12 @@
                 />
               </template>
             </q-input>
-
+            <div style="height: 5px;"></div>
+          
             <q-btn
               label="Sign In to Dashboard"
               type="submit"
-              color="blue-7"
+              color="primary"
               class="full-width q-py-sm text-subtitle2 text-weight-bold"
               :loading="loading"
               unelevated
@@ -136,18 +103,7 @@ import { useAuth } from '../composables/useAuth';
 const { email, password, loading, errorMessage, handleLogin } = useAuth();
 const isPwdVisible = ref(false);
 
-const fillDemoAccount = (role: 'doctor' | 'patient' | 'admin') => {
-  if (role === 'doctor') {
-    email.value = 'drsmith@example.com';
-    password.value = 'hashed_pass_123';
-  } else if (role === 'patient') {
-    email.value = 'shikha@example.com';
-    password.value = 'hashed_pass_123';
-  } else if (role === 'admin') {
-    email.value = 'admin@example.com';
-    password.value = 'hashed_pass_123';
-  }
-};
+
 </script>
 
 <style scoped>

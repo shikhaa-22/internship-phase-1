@@ -34,9 +34,9 @@ app.get('/api/doctors', async (req: Request, res: Response) => {
   try {
     const serviceId = req.query.serviceId ? Number(req.query.serviceId) : null;
     let query = `
-      SELECT u.id, u.name, u.email, dp.seniority_level, dp.tier_multiplier, sp.name AS specialization_name
+      SELECT u.id, u.name, u.email, dp.consultation_fee, dp.seniority_level, dp.tier_multiplier, dp.specialization_id, sp.name AS specialization_name
       FROM users u
-      JOIN doctor_profiles dp ON u.id = dp.user_id
+      LEFT JOIN doctor_profiles dp ON u.id = dp.user_id
       LEFT JOIN specializations sp ON dp.specialization_id = sp.id
       WHERE u.role = 'doctor'
     `;
@@ -53,6 +53,29 @@ app.get('/api/doctors', async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 });
+ 
+
+  // Get doctor's appointments for a given date (used to compute booked slots)
+  app.get('/api/doctors/:id/appointments', async (req: Request, res: Response) => {
+    try {
+      const doctorId = Number(req.params.id);
+      const date = req.query.date as string; // expected YYYY-MM-DD
+      if (!doctorId) return res.status(400).json({ error: 'Invalid doctor id' });
+      if (!date) return res.status(400).json({ error: 'Missing date param' });
+
+      const startOfDay = `${date} 00:00:00`;
+      const endOfDay = `${date} 23:59:59`;
+
+      const [rows] = await pool.execute(
+        `SELECT id, start_time, end_time, status FROM appointments WHERE doctor_id = ? AND start_time BETWEEN ? AND ?`,
+        [doctorId, startOfDay, endOfDay]
+      );
+
+      res.json(rows);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || 'Internal Server Error' });
+    }
+  });
 
 app.get('/api/appointments/admin', async (_req: Request, res: Response) => {
   try {
@@ -268,10 +291,12 @@ app.post('/api/appointments', async (req: Request, res: Response) => {
   try {
     const { clientId, doctorId, serviceId, addOnIds, startTime, status } = req.body;
 
-    const start = new Date(startTime);
+    const start = new Date(String(startTime).includes('T') ? startTime : String(startTime).replace(' ', 'T'));
     const end = new Date(start.getTime() + 60 * 60000); // 1-hour slot default
-    const endTimeStr = end.toISOString().slice(0, 19).replace('T', ' ');
-    const startTimeStr = start.toISOString().slice(0, 19).replace('T', ' ');
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startTimeStr = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())} ${pad(start.getHours())}:${pad(start.getMinutes())}:${pad(start.getSeconds())}`;
+    const endTimeStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())} ${pad(end.getHours())}:${pad(end.getMinutes())}:${pad(end.getSeconds())}`;
 
     // Validate doctor specialization against service requirement and calculate price
     const pricing = await calculateBookingPrice({
@@ -281,7 +306,7 @@ app.post('/api/appointments', async (req: Request, res: Response) => {
       startTimeStr
     });
 
-    const initialStatus = status || 'pending';
+    const initialStatus = status || 'confirmed';
 
     const [result]: any = await pool.execute(
       `INSERT INTO appointments (client_id, doctor_id, service_id, start_time, end_time, base_amount, tax_amount, total_amount, status) 
