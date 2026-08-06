@@ -173,16 +173,13 @@ INSERT INTO provider_profiles (user_id, category_id, specialization_id, seniorit
 INSERT INTO services (id, category_id, specialization_id, title, base_price, duration_minutes) VALUES 
 -- Doctor Services
 (1, 1, 1, 'Full Body Checkup', 100.00, 60),
-(2, 1, 2, 'Cardiac Consultation', 150.00, 45),
-(3, 1, 3, 'Dermatology Skin Evaluation', 120.00, 30),
+(2, 1, 2, 'Cardiac Consultation', 150.00, 60),
 -- Wellness Services
 (4, 2, 4, '1-on-1 Personal Fitness Training', 80.00, 60),
 (5, 2, 5, 'Deep Tissue Massage & Physical Therapy', 90.00, 60),
-(6, 2, 6, 'Custom Nutrition & Diet Plan', 75.00, 45),
 -- Consulting Services
 (7, 3, 7, 'Legal Contract & Agreement Review', 200.00, 60),
-(8, 3, 8, 'Business Strategy Consultation', 250.00, 60),
-(9, 3, 9, 'Tax & Financial Advisory Session', 180.00, 45);
+(8, 3, 8, 'Business Strategy Consultation', 250.00, 60);
 
 -- Insert Category-Specific Add-On Services & Diagnostic Tests
 INSERT INTO add_ons (id, category_id, title, description, price, duration_minutes) VALUES 

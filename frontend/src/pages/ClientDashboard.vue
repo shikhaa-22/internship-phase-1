@@ -22,51 +22,6 @@
         <div class="text-caption text-grey-6">Select category, service, qualified specialist, date and an available 1-hour time slot</div>
       </q-card-section>
 
-      <!-- On-Screen Booking Confirmation & Error Alert Banners -->
-      <q-card-section v-if="bookingSuccessMessage || bookingErrorMessage" class="q-pb-none q-pt-sm">
-        <!-- Success Banner -->
-        <q-banner
-          v-if="bookingSuccessMessage"
-          dense
-          inline-actions
-          class="bg-green-1 text-positive q-pa-md rounded-borders shadow-1"
-          style="border-left: 5px solid #21BA45; border-radius: 8px"
-        >
-          <template #avatar>
-            <q-icon name="check_circle" color="positive" size="md" />
-          </template>
-          <div class="text-subtitle1 text-weight-bold">{{ bookingSuccessMessage }}</div>
-          <div v-if="confirmedBookingDetails" class="text-caption text-grey-8 q-mt-xs">
-            Category: <strong>{{ confirmedBookingDetails.categoryName }}</strong> |
-            Service: <strong>{{ confirmedBookingDetails.serviceTitle }}</strong> |
-            Specialist: <strong>{{ confirmedBookingDetails.providerName }}</strong> |
-            Slot: <strong>{{ confirmedBookingDetails.timeSlot }}</strong> |
-            Total Paid: <strong>₹{{ confirmedBookingDetails.totalAmount }}</strong>
-          </div>
-          <template #action>
-            <q-btn flat round icon="close" color="positive" size="sm" @click="bookingSuccessMessage = ''" />
-          </template>
-        </q-banner>
-
-        <!-- Error Banner -->
-        <q-banner
-          v-if="bookingErrorMessage"
-          dense
-          inline-actions
-          class="bg-red-1 text-negative q-pa-md rounded-borders shadow-1"
-          style="border-left: 5px solid #C10015; border-radius: 8px"
-        >
-          <template #avatar>
-            <q-icon name="error" color="negative" size="md" />
-          </template>
-          <div class="text-subtitle1 text-weight-bold">Booking Notice</div>
-          <div class="text-caption text-grey-9 q-mt-xs">{{ bookingErrorMessage }}</div>
-          <template #action>
-            <q-btn flat round icon="close" color="negative" size="sm" @click="bookingErrorMessage = ''" />
-          </template>
-        </q-banner>
-      </q-card-section>
-      
       <q-card-section class="q-pa-md">
         <div class="row q-col-gutter-md">
           <!-- 1. Appointment Category -->
@@ -416,6 +371,7 @@ interface PatientHistoryItem {
   doctor_name: string;
   provider_name: string;
   service_title: string;
+  service_id?: number;
   category_id?: number;
   category_name?: string;
   add_ons_summary: string | null;
@@ -724,7 +680,7 @@ const loadDoctorAppointments = async (providerId: number, dateStr: string) => {
 };
 
 /**
- * Computes strictly 1-hour slots (09:00 - 17:00).
+ * Computes available slots based on the selected service's exact duration (e.g. 30, 45, or 60 mins).
  * Strictly excludes any slot that overlaps with an active booked appointment (confirmed, pending, completed, blocked).
  */
 const computeAvailableSlots = (dateStr: string) => {
@@ -734,10 +690,14 @@ const computeAvailableSlots = (dateStr: string) => {
 
   const pad = (n: number) => String(n).padStart(2, '0');
 
-  // Standard work hours: 09:00 to 17:00 in fixed 1-hour blocks
+  // Fetch duration of selected service (default 60 mins if unspecified)
+  const svcObj = services.value.find(s => Number(s.id) === Number(selectedService.value));
+  const durationMins = svcObj ? Number(svcObj.duration_minutes) : 60;
+
+  // Standard work hours starting points: 09:00 to 17:00
   const standardHours = [9, 10, 11, 12, 13, 14, 15, 16];
 
-  // Active bookings that occupy time (including confirmed, pending, completed, blocked, or cancelled slots)
+  // Active bookings that occupy time
   const activeBookings = currentBooked
     .map(b => {
       const startMs = Date.parse(b.start_time.replace(' ', 'T'));
@@ -751,16 +711,25 @@ const computeAvailableSlots = (dateStr: string) => {
 
   for (const hour of standardHours) {
     const slotStartMs = Date.parse(`${dateStr}T${pad(hour)}:00:00`);
-    const slotEndMs = Date.parse(`${dateStr}T${pad(hour + 1)}:00:00`);
+    const slotEndMs = slotStartMs + durationMins * 60000;
 
-    // Strictly check if this 1-hour slot overlaps with ANY active booking
+    // Check if this slot overlaps with ANY active booking
     const isOccupied = activeBookings.some(
       b => slotStartMs < b.endMs && slotEndMs > b.startMs
     );
 
-    const startHourStr = `${pad(hour)}:00`;
-    const endHourStr = `${pad(hour + 1)}:00`;
-    const timeLabel = `${startHourStr} - ${endHourStr}`;
+    const startD = new Date(slotStartMs);
+    const endD = new Date(slotEndMs);
+
+    const formatAmPm = (d: Date) => {
+      let h = d.getHours();
+      const m = String(d.getMinutes()).padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${pad(h)}:${m} ${ampm}`;
+    };
+
+    const timeLabel = `${formatAmPm(startD)} - ${formatAmPm(endD)}`;
     const valueStr = `${dateStr} ${pad(hour)}:00:00`;
 
     fullGrid.push({
@@ -771,7 +740,7 @@ const computeAvailableSlots = (dateStr: string) => {
     });
 
     if (!isOccupied) {
-      available.push({ label: `${timeLabel} (1 Hour)`, value: valueStr });
+      available.push({ label: `${timeLabel} (${durationMins} Mins)`, value: valueStr });
     }
   }
 
@@ -870,6 +839,23 @@ const bookAppointment = async () => {
 
   const startTime = selectedSlot.value;
 
+  // Enforce service quota (max 10 appointments per service)
+  const serviceQuotaCount = historyItems.value.filter(item => {
+    const s = (item.status || '').toLowerCase();
+    const isSvcMatch = Number(item.service_id) === Number(selectedService.value);
+    const isActive = s === 'confirmed' || s === 'pending' || s === 'completed';
+    return isSvcMatch && isActive;
+  }).length;
+
+  if (serviceQuotaCount >= 10) {
+    const msg = 'Max appt quota over';
+    bookingErrorMessage.value = msg;
+    if ($q && typeof $q.notify === 'function') {
+      $q.notify({ type: 'negative', message: msg, icon: 'warning', position: 'top', timeout: 5000 });
+    }
+    return;
+  }
+
   if (price.value == null) {
     await calculatePrice();
     if (price.value == null) {
@@ -951,6 +937,7 @@ const bookAppointment = async () => {
       doctor_name: docObj?.name || 'Specialist',
       provider_name: docObj?.name || 'Specialist',
       service_title: svcObj?.title || 'Selected Service',
+      service_id: Number(selectedService.value),
       category_id: selectedCategory.value ? Number(selectedCategory.value) : 1,
       category_name: catObj?.name || 'Healthcare',
       add_ons_summary: null,

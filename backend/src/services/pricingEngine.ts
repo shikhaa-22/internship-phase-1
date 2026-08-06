@@ -5,7 +5,7 @@ export interface PriceCalculationParams {
   providerId?: number;
   doctorId?: number;
   addOnIds?: number[];
-  startTimeStr?: string;
+  startTimeStr?: string | Date;
 }
 
 export interface AddOnItem {
@@ -93,7 +93,16 @@ export async function calculateBookingPrice(params: PriceCalculationParams) {
   let currentTotal = basePrice + tierAdjustment + addOnsTotal;
 
   // 4. Dynamic Rules (Weekend, Peak Hour, Taxes)
-  const start = startTimeStr ? new Date(startTimeStr.includes('T') ? startTimeStr : startTimeStr.replace(' ', 'T')) : new Date();
+  let start: Date;
+  if (!startTimeStr) {
+    start = new Date();
+  } else if (startTimeStr instanceof Date) {
+    start = startTimeStr;
+  } else {
+    const timeStr = String(startTimeStr);
+    start = new Date(timeStr.includes('T') ? timeStr : timeStr.replace(' ', 'T'));
+  }
+
   const dayOfWeek = start.getDay(); // 0 = Sunday, 6 = Saturday
   const timeString = start.toTimeString().split(' ')[0]; // HH:MM:SS
 

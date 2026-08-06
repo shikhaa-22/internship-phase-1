@@ -210,7 +210,7 @@
                   size="sm"
                   style="font-size: 13px"
                 >
-                  {{ slot.slotTime }}
+                  {{ formatApptTimeRange(slot.appointment, slot.slotTime) }}
                 </q-chip>
                 <q-chip color="blue-1" text-color="blue-9" size="sm" dense class="text-weight-bold">
                   CONFIRMED
@@ -254,7 +254,7 @@
                 <div class="text-body2 text-slate-700 row items-center q-gutter-x-sm">
                   <span>{{ slot.appointment.service_title }}</span>
                   <span class="text-weight-bold text-slate-900"
-                    >${{ Number(slot.appointment.total_amount).toFixed(2) }}</span
+                    >₹{{ Number(slot.appointment.total_amount).toFixed(2) }}</span
                   >
                   <span
                     v-if="slot.appointment.add_ons_summary"
@@ -319,7 +319,7 @@
                     size="sm"
                     style="font-size: 13px"
                   >
-                    {{ slot.slotTime }}
+                    {{ formatApptTimeRange(slot.appointment, slot.slotTime) }}
                   </q-chip>
                   <q-chip
                     color="green-2"
@@ -355,12 +355,12 @@
                   class="bg-green-1 text-grey-9 q-pa-sm border-green-soft rounded-borders text-body2 col"
                 >
                   <div>
-                    <span class="text-weight-bold text-green-9">📋 Diagnosis & Notes: </span>
+                    <span class="text-weight-bold text-green-9">{{ getDiagnosisNotesTitle(slot.appointment.category_name) }} </span>
                     <span>"{{ slot.appointment.clinical_notes || 'Consultation completed' }}"</span>
                   </div>
                   <div class="q-mt-xs">
                     <span class="text-weight-bold text-green-9"
-                      >💊 Prescription & Medications:
+                      >{{ getPrescriptionTitle(slot.appointment.category_name) }}
                     </span>
                     <span class="text-weight-medium">{{
                       slot.appointment.prescription || 'No prescription issued'
@@ -374,7 +374,7 @@
                   size="sm"
                   class="q-px-sm q-ml-md text-weight-bold"
                   icon="edit_note"
-                  label="Edit Prescription"
+                  :label="getEditPrescriptionButtonLabel(slot.appointment.category_name)"
                   no-caps
                   @click="openCompleteDialog(slot.appointment)"
                 />
@@ -731,14 +731,14 @@
                   v-if="item.clinical_notes"
                   class="bg-white q-pa-xs rounded-borders text-body2 text-slate-800"
                 >
-                  <strong>Diagnosis:</strong> "{{ item.clinical_notes }}"
+                  <strong>{{ getNotesLabelOnly(item.category_name) }}:</strong> "{{ item.clinical_notes }}"
                 </div>
 
                 <div
                   v-if="item.prescription"
                   class="bg-white q-pa-xs rounded-borders text-body2 text-slate-800"
                 >
-                  <strong>Prescription:</strong> {{ item.prescription }}
+                  <strong>{{ getPrescriptionLabelOnly(item.category_name) }}:</strong> {{ item.prescription }}
                 </div>
 
                 <div
@@ -770,12 +770,12 @@
             <div><strong>Patient:</strong> {{ targetAppointment.client_name }}</div>
             <div><strong>Service:</strong> {{ targetAppointment.service_title }}</div>
             <div>
-              <strong>Current Total:</strong> ${{
+              <strong>Current Total:</strong> ₹{{
                 Number(targetAppointment.total_amount).toFixed(2)
               }}
             </div>
             <div v-if="unattachedSelectedCount > 0" class="text-weight-bold text-blue-8 q-mt-xs">
-              Estimated New Total: ${{ estimatedNewTotal.toFixed(2) }}
+              Estimated New Total: ₹{{ estimatedNewTotal.toFixed(2) }}
             </div>
           </div>
 
@@ -815,7 +815,7 @@
                     dense
                     class="text-weight-bold"
                   >
-                    Attached (+${{ Number(addon.price).toFixed(2) }})
+                    Attached (+₹{{ Number(addon.price).toFixed(2) }})
                   </q-chip>
                 </div>
 
@@ -834,7 +834,7 @@
                     </template>
                   </q-checkbox>
                   <span class="text-weight-bold text-blue-7 text-body2 q-ml-sm"
-                    >+${{ Number(addon.price).toFixed(2) }}</span
+                    >+₹{{ Number(addon.price).toFixed(2) }}</span
                   >
                 </template>
               </div>
@@ -964,6 +964,7 @@ interface PatientHistoryItem {
   doctor_name: string;
   service_title: string;
   add_ons_summary?: string | null;
+  category_name?: string | null;
 }
 
 const router = useRouter();
@@ -1036,6 +1037,58 @@ const getCompleteModalSaveLabel = (catName?: string | null) => {
   if (type === 'doctor') return 'Save Prescription & Notes';
   if (type === 'wellness') return 'Save Workout & Diet Plan';
   return 'Save Session Summary';
+};
+
+const getDiagnosisNotesTitle = (catName?: string | null) => {
+  const type = getProviderCategoryType(catName);
+  if (type === 'doctor') return '📋 Diagnosis & Notes:';
+  if (type === 'wellness') return '📋 Assessment & Notes:';
+  return '📋 Advisory & Notes:';
+};
+
+const getNotesLabelOnly = (catName?: string | null) => {
+  const type = getProviderCategoryType(catName);
+  if (type === 'doctor') return 'Diagnosis & Notes';
+  if (type === 'wellness') return 'Assessment & Notes';
+  return 'Advisory & Notes';
+};
+
+const getPrescriptionTitle = (catName?: string | null) => {
+  const type = getProviderCategoryType(catName);
+  if (type === 'doctor') return '💊 Prescription & Medications:';
+  if (type === 'wellness') return '🏃 Workout & Diet Plan:';
+  return '💡 Recommendations & Action Items:';
+};
+
+const getPrescriptionLabelOnly = (catName?: string | null) => {
+  const type = getProviderCategoryType(catName);
+  if (type === 'doctor') return 'Prescription & Medications';
+  if (type === 'wellness') return 'Workout & Diet Plan';
+  return 'Recommendations & Action Items';
+};
+
+const getEditPrescriptionButtonLabel = (catName?: string | null) => {
+  const type = getProviderCategoryType(catName);
+  if (type === 'doctor') return 'Edit Prescription';
+  if (type === 'wellness') return 'Edit Plan';
+  return 'Edit Advisory';
+};
+
+const formatApptTimeRange = (appt: Appointment | undefined, defaultSlotTime: string): string => {
+  if (!appt || !appt.start_time || !appt.end_time) return defaultSlotTime;
+  const formatTimeStr = (str: string) => {
+    const d = new Date(str.includes('T') ? str : str.replace(' ', 'T'));
+    if (isNaN(d.getTime())) return '';
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+  };
+  const startStr = formatTimeStr(appt.start_time);
+  const endStr = formatTimeStr(appt.end_time);
+  if (startStr && endStr) return `${startStr} - ${endStr}`;
+  return defaultSlotTime;
 };
 
 // Date state (Format: YYYY-MM-DD)
@@ -1114,10 +1167,12 @@ function getStatusColor(status: string): string {
 // Check if an add-on is already attached to current target appointment
 const isAddOnAttached = (addonId: number): boolean => {
   if (!targetAppointment.value || !targetAppointment.value.attached_add_on_ids) return false;
-  const attachedList = targetAppointment.value.attached_add_on_ids
+  const raw = String(targetAppointment.value.attached_add_on_ids || '');
+  const attachedList = raw
     .split(',')
-    .map((s) => Number(s.trim()));
-  return attachedList.includes(addonId);
+    .map((s) => Number(s.trim()))
+    .filter((n) => !isNaN(n));
+  return attachedList.includes(Number(addonId));
 };
 
 // Count of newly selected unattached add-ons
@@ -1186,6 +1241,12 @@ const fetchAppointments = async () => {
   loading.value = true;
   try {
     appointments.value = await appointmentService.getDoctorAppointments(currentDoctorId.value);
+    if (targetAppointment.value) {
+      const refreshed = appointments.value.find((a) => a.id === targetAppointment.value?.id);
+      if (refreshed) {
+        targetAppointment.value = refreshed;
+      }
+    }
   } catch (err) {
     console.error('API fetch failed:', err);
     appointments.value = [];
@@ -1310,7 +1371,7 @@ const openAddOnDialog = (appt: Appointment) => {
 const submitAddOns = async () => {
   if (!targetAppointment.value) return;
 
-  const newlySelectedIds = selectedAddOnIds.value.filter((id) => !isAddOnAttached(id));
+  const newlySelectedIds = Array.from(new Set(selectedAddOnIds.value)).filter((id) => !isAddOnAttached(id));
   if (newlySelectedIds.length === 0) return;
 
   submittingAddOns.value = true;
@@ -1320,8 +1381,16 @@ const submitAddOns = async () => {
       addOnIds: newlySelectedIds,
     });
 
-    if (result.pricing && targetAppointment.value) {
-      targetAppointment.value.total_amount = result.pricing.totalAmount;
+    if (result && targetAppointment.value) {
+      if (result.pricing) {
+        targetAppointment.value.total_amount = result.pricing.totalAmount;
+      }
+      if (result.attached_add_on_ids) {
+        targetAppointment.value.attached_add_on_ids = result.attached_add_on_ids;
+      }
+      if (result.add_ons_summary) {
+        targetAppointment.value.add_ons_summary = result.add_ons_summary;
+      }
     }
   } catch (err) {
     console.error('Failed to attach add-ons:', err);

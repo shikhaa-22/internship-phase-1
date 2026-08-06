@@ -229,7 +229,7 @@ app.post('/api/appointments/add-ons', async (req: Request, res: Response) => {
     }
 
     const [appts]: any = await pool.execute(
-      'SELECT service_id, provider_id, doctor_id, start_time FROM appointments WHERE id = ?', 
+      "SELECT service_id, provider_id, doctor_id, DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s') AS start_time FROM appointments WHERE id = ?", 
       [appointmentId]
     );
     if (!appts || appts.length === 0) {
@@ -243,8 +243,15 @@ app.post('/api/appointments/add-ons', async (req: Request, res: Response) => {
     );
     const existingIds = existingAddOns.map((r: any) => Number(r.add_on_id));
 
-    const newAddOnIds = addOnIds.map(Number).filter(id => !existingIds.includes(id));
-    const allAddOnIds = Array.from(new Set([...existingIds, ...addOnIds.map(Number)]));
+    // Deduplicate incoming add-on IDs and exclude add-ons already attached to this appointment
+    const uniqueIncomingIds = Array.from(new Set(addOnIds.map(Number)));
+    const newAddOnIds = uniqueIncomingIds.filter(id => !existingIds.includes(id));
+
+    if (newAddOnIds.length === 0) {
+      return res.status(400).json({ error: 'Selected add-ons are already attached to this appointment' });
+    }
+
+    const allAddOnIds = Array.from(new Set([...existingIds, ...newAddOnIds]));
 
     const pricing = await calculateBookingPrice({
       serviceId: appt.service_id,
@@ -267,7 +274,24 @@ app.post('/api/appointments/add-ons', async (req: Request, res: Response) => {
       [pricing.subtotal, pricing.taxAmount, pricing.totalAmount, appointmentId]
     );
 
-    res.json({ message: 'Add-ons attached successfully', pricing });
+    const [updatedAddOns]: any = await pool.execute(
+      `SELECT GROUP_CONCAT(CONCAT(ao.title, ' (₹', ao.price, ')') SEPARATOR ', ') AS add_ons_summary,
+              GROUP_CONCAT(aao.add_on_id) AS attached_add_on_ids
+       FROM appointment_add_ons aao
+       JOIN add_ons ao ON aao.add_on_id = ao.id
+       WHERE aao.appointment_id = ?`,
+      [appointmentId]
+    );
+
+    const summary = updatedAddOns[0]?.add_ons_summary || null;
+    const attachedIdsStr = updatedAddOns[0]?.attached_add_on_ids || allAddOnIds.join(',');
+
+    res.json({ 
+      message: 'Add-ons attached successfully', 
+      pricing,
+      attached_add_on_ids: attachedIdsStr,
+      add_ons_summary: summary
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
@@ -370,19 +394,33 @@ app.post('/api/appointments', async (req: Request, res: Response) => {
       }
     }
 
+    const pricing = await calculateBookingPrice({
+      serviceId: Number(serviceId),
+      providerId: Number(providerId),
+      addOnIds: Array.isArray(addOnIds) ? addOnIds.map(Number) : [],
+      startTimeStr: String(startTime)
+    });
+
+    const durationMinutes = pricing.durationMinutes || 60;
     const start = new Date(String(startTime).includes('T') ? startTime : String(startTime).replace(' ', 'T'));
-    const end = new Date(start.getTime() + 60 * 60000); // 1-hour slot default
+    const end = new Date(start.getTime() + durationMinutes * 60000);
 
     const pad = (n: number) => String(n).padStart(2, '0');
     const startTimeStr = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())} ${pad(start.getHours())}:${pad(start.getMinutes())}:${pad(start.getSeconds())}`;
     const endTimeStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())} ${pad(end.getHours())}:${pad(end.getMinutes())}:${pad(end.getSeconds())}`;
 
-    const pricing = await calculateBookingPrice({
-      serviceId: Number(serviceId),
-      providerId: Number(providerId),
-      addOnIds: Array.isArray(addOnIds) ? addOnIds.map(Number) : [],
-      startTimeStr
-    });
+    // Enforce max 10 appointments quota per service per client
+    const [quotaRows]: any = await pool.execute(
+      `SELECT COUNT(*) AS activeCount FROM appointments 
+       WHERE client_id = ? AND service_id = ? 
+         AND status IN ('confirmed', 'pending', 'completed')`,
+      [clientId, serviceId]
+    );
+
+    const activeCount = quotaRows[0]?.activeCount || 0;
+    if (activeCount >= 10) {
+      return res.status(400).json({ error: 'Max appt quota over' });
+    }
 
     // Enforce double-booking validation
     const [existingRows]: any = await pool.execute(
@@ -491,7 +529,7 @@ app.get('/api/patient/history', async (req: Request, res: Response) => {
     if (!clientId || isNaN(clientId)) return res.status(400).json({ error: 'Invalid or missing clientId' });
 
     let query = `
-      SELECT a.id, 
+      SELECT a.id, a.service_id, 
              DATE_FORMAT(a.start_time, '%Y-%m-%d %H:%i:%s') AS start_time, 
              DATE_FORMAT(a.end_time, '%Y-%m-%d %H:%i:%s') AS end_time, 
              a.status, a.clinical_notes, a.prescription,
