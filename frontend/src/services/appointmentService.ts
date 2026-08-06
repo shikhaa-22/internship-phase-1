@@ -76,8 +76,11 @@ export const appointmentService = {
   /**
    * Fetch complete medical consultation history timeline for a patient
    */
-  async getPatientHistory(clientId: number) {
-    const response = await fetch(`${API_BASE}/patient/history?clientId=${clientId}`);
+  async getPatientHistory(clientId: number, requestorId?: number) {
+    const url = requestorId 
+      ? `${API_BASE}/patient/history?clientId=${clientId}&requestorId=${requestorId}`
+      : `${API_BASE}/patient/history?clientId=${clientId}`;
+    const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch patient history');
     return response.json();
   },
@@ -85,8 +88,14 @@ export const appointmentService = {
   /**
    * Fetch list of available diagnostic add-on services
    */
-  async getAvailableAddOns() {
-    const response = await fetch(`${API_BASE}/add-ons`);
+  async getAvailableAddOns(categoryId?: number, serviceId?: number) {
+    let url = `${API_BASE}/add-ons`;
+    if (serviceId) {
+      url += `?serviceId=${serviceId}`;
+    } else if (categoryId) {
+      url += `?categoryId=${categoryId}`;
+    }
+    const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch add-on services');
     return response.json();
   },

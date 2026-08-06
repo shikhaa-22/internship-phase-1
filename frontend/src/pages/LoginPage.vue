@@ -1,6 +1,6 @@
 <template>
-  <q-page class="row items-center justify-center bg-slate-100 q-pa-md" >
-    <div style="width: 100%; max-width: 550px;" >
+  <q-page class="row items-center justify-center bg-slate-100 q-pa-md">
+    <div style="width: 100%; max-width: 550px;">
       <q-card
         elevated
         bordered
@@ -13,19 +13,17 @@
             size="56px"
             color="primary"
             text-color="white"
-            icon="medical_services"
+            icon="event_note"
             class="q-mb-sm shadow-1"
           />
           <div style="height: 10px;"></div>
           
-          <div class="text-h5 text-weight-bold text-slate-900">Appointment Booking System</div>
+          <div class="text-h5 text-weight-bold text-slate-900">Multi-Category Booking Platform</div>
           <div class="text-body2 text-slate-600 q-mt-xs">
-            Sign in to manage appointments & records
+            Sign in to book & manage Doctor, Wellness, and Consulting appointments
           </div>
-          <div style="height: 30px;"></div>
+          <div style="height: 20px;"></div>
         </q-card-section>
-
-        
 
         <q-card-section class="q-pt-none">
           <!-- Error Banner -->
@@ -90,6 +88,27 @@
               style="border-radius: 8px"
             />
           </q-form>
+
+          <q-separator class="q-my-md" />
+
+          <!-- Demo Quick Logins -->
+          <div class="text-caption text-weight-bold text-grey-7 text-center q-mb-sm">
+            QUICK DEMO LOGINS
+          </div>
+          <div class="row q-col-gutter-xs justify-center">
+            <div class="col-auto">
+              <q-btn size="sm" outline color="primary" label="Client (Shikhaa)" no-caps @click="fillCredentials('shikha@example.com', 'hashed_pass_123')" />
+            </div>
+            <div class="col-auto">
+              <q-btn size="sm" outline color="teal" label="Doctor (Dr. Smith)" no-caps @click="fillCredentials('drsmith@example.com', 'hashed_pass_123')" />
+            </div>
+            <div class="col-auto">
+              <q-btn size="sm" outline color="deep-orange" label="Wellness (Marcus)" no-caps @click="fillCredentials('marcus@example.com', 'hashed_pass_123')" />
+            </div>
+            <div class="col-auto">
+              <q-btn size="sm" outline color="indigo" label="Consultant (Sarah)" no-caps @click="fillCredentials('sarah@example.com', 'hashed_pass_123')" />
+            </div>
+          </div>
         </q-card-section>
       </q-card>
     </div>
@@ -103,7 +122,11 @@ import { useAuth } from '../composables/useAuth';
 const { email, password, loading, errorMessage, handleLogin } = useAuth();
 const isPwdVisible = ref(false);
 
-
+const fillCredentials = (demoEmail: string, demoPass: string) => {
+  email.value = demoEmail;
+  password.value = demoPass;
+  void handleLogin();
+};
 </script>
 
 <style scoped>

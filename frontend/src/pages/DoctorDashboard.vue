@@ -1,7 +1,6 @@
 <template>
   <q-page class="q-pa-md bg-slate-50 text-slate-800">
     <div class="max-width-container mx-auto">
-      <!-- Header Banner -->
       <q-card
         elevated
         bordered
@@ -15,11 +14,11 @@
               <div class="row items-center q-gutter-xs">
                 <span class="text-h6 text-weight-bold text-slate-900">{{ currentDoctorName }}</span>
                 <q-chip color="blue-1" text-color="blue-8" size="sm" class="text-weight-bold">
-                  Doctor Schedule
+                  Provider Schedule
                 </q-chip>
               </div>
               <div class="text-caption text-slate-600">
-                Daily Roster & Medical Prescription Management
+                Daily Roster & Appointment Notes Management
               </div>
             </div>
           </div>
@@ -50,9 +49,7 @@
         </q-card-section>
       </q-card>
 
-      <!-- Date Selection & Stats Summary -->
       <div class="row q-col-gutter-sm q-mb-sm">
-        <!-- Prominent Calendar Card (50% Width) -->
         <div class="col-12 col-md-6">
           <q-card
             elevated
@@ -108,7 +105,7 @@
           </q-card>
         </div>
 
-        <!-- Metric Cards (50% Width) -->
+        
         <div class="col-12 col-md-6">
           <div class="row q-col-gutter-xs fill-height">
             <div class="col-6 col-sm-3">
@@ -167,10 +164,10 @@
         </div>
       </div>
 
-      <!-- Clean Separator & Gap between Calendar/Stats and Slots -->
+      
       <q-separator class="q-my-lg" />
 
-      <!-- Schedule Slots Header -->
+      
       <div class="row items-center justify-between q-mb-md">
         <div class="row items-center">
           <q-icon name="schedule" color="blue-7" class="q-mr-xs" size="sm" />
@@ -186,15 +183,14 @@
         </div>
       </div>
 
-      <!-- Loading State -->
+      
       <div v-if="loading" class="row justify-center q-py-md">
         <q-spinner-dots color="blue-7" size="36px" />
       </div>
 
-      <!-- Slots Grid (Clear Readable Text) -->
+      
       <div v-else class="column q-gutter-y-sm">
         <div v-for="slot in computedTimeSlots" :key="slot.slotTime" class="slot-card-wrapper">
-          <!-- OCCUPIED SLOT (Confirmed) -->
           <q-card
             v-if="slot.appointment && slot.appointment.status === 'confirmed'"
             elevated
@@ -204,7 +200,6 @@
             <q-card-section
               class="row items-center justify-between q-col-gutter-xs q-pa-sm q-px-md"
             >
-              <!-- Left: Time & Status -->
               <div class="col-12 col-sm-3 row items-center q-gutter-xs">
                 <q-chip
                   color="blue-7"
@@ -222,7 +217,7 @@
                 </q-chip>
               </div>
 
-              <!-- Middle: Patient Details & Medical History Trigger -->
+              
               <div class="col-12 col-sm-5">
                 <div class="row items-center q-gutter-xs">
                   <q-icon name="person" color="blue-7" size="sm" />
@@ -270,15 +265,15 @@
                 </div>
               </div>
 
-              <!-- Right: Actions -->
+              
               <div class="col-12 col-sm-4 row justify-end q-gutter-xs">
                 <q-btn
                   color="positive"
                   elevated
                   size="sm"
                   class="q-px-sm text-weight-bold"
-                  icon="medication"
-                  label="Prescribe / Complete"
+                  :icon="getRosterCompleteButtonIcon(slot.appointment?.category_name)"
+                  :label="getRosterCompleteButtonLabel(slot.appointment?.category_name)"
                   no-caps
                   @click="openCompleteDialog(slot.appointment)"
                 />
@@ -306,7 +301,6 @@
             </q-card-section>
           </q-card>
 
-          <!-- COMPLETED CONSULTATION SLOT -->
           <q-card
             v-else-if="slot.appointment && slot.appointment.status === 'completed'"
             elevated
@@ -356,7 +350,6 @@
                 </div>
               </div>
 
-              <!-- Clinical Notes & Prescription Banner -->
               <div class="row items-center justify-between">
                 <div
                   class="bg-green-1 text-grey-9 q-pa-sm border-green-soft rounded-borders text-body2 col"
@@ -389,7 +382,6 @@
             </q-card-section>
           </q-card>
 
-          <!-- BLOCKED BREAK SLOT -->
           <q-card
             v-else-if="slot.appointment && slot.appointment.status === 'blocked'"
             elevated
@@ -432,7 +424,6 @@
             </q-card-section>
           </q-card>
 
-          <!-- OCCUPIED SLOT (Cancelled) -->
           <q-card
             v-else-if="slot.appointment && slot.appointment.status === 'cancelled'"
             elevated
@@ -478,7 +469,6 @@
             </q-card-section>
           </q-card>
 
-          <!-- VACANT SLOT -->
           <q-card v-else elevated bordered class="slot-card vacant-card bg-white">
             <q-card-section class="row items-center justify-between q-pa-sm q-px-md">
               <div class="row items-center q-gutter-sm">
@@ -526,52 +516,93 @@
       </div>
     </div>
 
-    <!-- FEATURE 1: COMPLETE CONSULTATION & CLINICAL NOTES DIALOG -->
     <q-dialog v-model="completeModalOpen" persistent>
       <q-card style="min-width: 460px; border-radius: 12px" class="q-pa-sm">
         <q-card-section class="row items-center justify-between text-positive">
           <div class="text-subtitle1 text-weight-bold row items-center">
-            <q-icon name="medication" class="q-mr-xs" size="sm" />
-            Add Prescription & Consultation Notes
+            <q-icon :name="getRosterCompleteButtonIcon(targetAppointment?.category_name)" class="q-mr-xs" size="sm" />
+            {{ getCompleteModalHeader(targetAppointment?.category_name) }}
           </div>
           <q-btn icon="close" elevated round dense v-close-popup />
         </q-card-section>
 
         <q-card-section v-if="targetAppointment" class="q-pt-none">
           <div class="q-mb-md bg-green-1 q-pa-sm text-body2 rounded-borders text-grey-9">
-            <div><strong>Patient:</strong> {{ targetAppointment.client_name }}</div>
+            <div><strong>Client:</strong> {{ targetAppointment.client_name }}</div>
             <div><strong>Service:</strong> {{ targetAppointment.service_title }}</div>
-            <div><strong>Time:</strong> {{ formatTime(targetAppointment.start_time) }}</div>
+            <div><strong>Category:</strong> {{ targetAppointment.category_name || 'Healthcare' }}</div>
           </div>
 
           <q-form @submit.prevent="confirmCompletion">
-            <q-input
-              v-model="prescriptionInput"
-              type="textarea"
-              outlined
-              dense
-              label="Prescription & Medications Summary *"
-              hint="List prescribed medicines, dosage, or instructions"
-              rows="3"
-              class="q-mb-sm"
-              autofocus
-            />
+            <!-- Doctor Inputs -->
+            <template v-if="getProviderCategoryType(targetAppointment?.category_name) === 'doctor'">
+              <q-input
+                v-model="prescriptionInput"
+                type="textarea"
+                outlined
+                dense
+                label="Prescription & Medications Summary *"
+                hint="List prescribed medicines, dosage, and intake instructions"
+                rows="3"
+                class="q-mb-sm"
+                autofocus
+              />
+              <q-input
+                v-model="clinicalNotesInput"
+                type="textarea"
+                outlined
+                dense
+                label="Diagnosis & Clinical Observations"
+                hint="Enter clinical diagnosis or observations summary"
+                rows="2"
+                class="q-mb-md"
+              />
+            </template>
 
-            <q-input
-              v-model="clinicalNotesInput"
-              type="textarea"
-              outlined
-              dense
-              label="Diagnosis & Clinical Notes"
-              hint="Enter observations or diagnosis summary"
-              rows="2"
-              class="q-mb-md"
-            />
+            <!-- Wellness Inputs (Diet & Workout Plan) -->
+            <template v-else-if="getProviderCategoryType(targetAppointment?.category_name) === 'wellness'">
+              <q-input
+                v-model="prescriptionInput"
+                type="textarea"
+                outlined
+                dense
+                label="Custom Diet & Workout Plan *"
+                hint="Detail physical workout routine, reps/sets, and daily nutrition diet plan"
+                rows="3"
+                class="q-mb-sm"
+                autofocus
+              />
+              <q-input
+                v-model="clinicalNotesInput"
+                type="textarea"
+                outlined
+                dense
+                label="Trainer Session Notes & Mobility Observations"
+                hint="Record athletic progress, flexibility notes, or session observations"
+                rows="2"
+                class="q-mb-md"
+              />
+            </template>
+
+            <!-- Consulting Inputs (Session Summary ONLY) -->
+            <template v-else>
+              <q-input
+                v-model="clinicalNotesInput"
+                type="textarea"
+                outlined
+                dense
+                label="Executive Session Summary & Key Takeaways *"
+                hint="Record advisory notes, key decisions, and session summary"
+                rows="4"
+                class="q-mb-md"
+                autofocus
+              />
+            </template>
 
             <div class="row justify-end q-gutter-xs">
               <q-btn label="Cancel" elevated no-caps dense v-close-popup />
               <q-btn
-                label="Save Prescription & Notes"
+                :label="getCompleteModalSaveLabel(targetAppointment?.category_name)"
                 color="positive"
                 type="submit"
                 elevated
@@ -901,6 +932,8 @@ interface Appointment {
   client_name: string;
   client_email?: string;
   service_title: string;
+  category_name?: string | null;
+  category_id?: number | null;
   add_ons_summary?: string | null;
   attached_add_on_ids?: string | null;
 }
@@ -969,6 +1002,41 @@ const selectedAddOnIds = ref<number[]>([]);
 // User / Doctor State
 const currentDoctorId = ref<number>(2);
 const currentDoctorName = ref<string>('Dr. Robert Smith');
+
+const getProviderCategoryType = (catName?: string | null) => {
+  const cat = (catName || '').toLowerCase();
+  if (cat.includes('wellness') || cat.includes('fitness')) return 'wellness';
+  if (cat.includes('consult')) return 'consulting';
+  return 'doctor';
+};
+
+const getRosterCompleteButtonLabel = (catName?: string | null) => {
+  const type = getProviderCategoryType(catName);
+  if (type === 'doctor') return 'Prescribe & Complete';
+  if (type === 'wellness') return 'Add Diet/Workout & Complete';
+  return 'Record Summary & Complete';
+};
+
+const getRosterCompleteButtonIcon = (catName?: string | null) => {
+  const type = getProviderCategoryType(catName);
+  if (type === 'doctor') return 'medication';
+  if (type === 'wellness') return 'fitness_center';
+  return 'assignment_turned_in';
+};
+
+const getCompleteModalHeader = (catName?: string | null) => {
+  const type = getProviderCategoryType(catName);
+  if (type === 'doctor') return 'Add Medical Prescription & Clinical Notes';
+  if (type === 'wellness') return 'Add Diet & Workout Plan';
+  return 'Add Session Summary';
+};
+
+const getCompleteModalSaveLabel = (catName?: string | null) => {
+  const type = getProviderCategoryType(catName);
+  if (type === 'doctor') return 'Save Prescription & Notes';
+  if (type === 'wellness') return 'Save Workout & Diet Plan';
+  return 'Save Session Summary';
+};
 
 // Date state (Format: YYYY-MM-DD)
 const todayStr = new Date().toISOString().slice(0, 10);
@@ -1210,7 +1278,7 @@ const openPatientHistory = async (clientId: number, clientName: string, clientEm
   loadingHistory.value = true;
 
   try {
-    patientHistoryList.value = await appointmentService.getPatientHistory(clientId);
+    patientHistoryList.value = await appointmentService.getPatientHistory(clientId, currentDoctorId.value);
   } catch (err) {
     console.error('Failed to fetch patient history:', err);
   } finally {
@@ -1219,10 +1287,10 @@ const openPatientHistory = async (clientId: number, clientName: string, clientEm
 };
 
 // Fetch available add-on services from API
-const fetchAvailableAddOns = async () => {
+const fetchAvailableAddOns = async (catId?: number, svcId?: number) => {
   loadingAddOns.value = true;
   try {
-    availableAddOns.value = await appointmentService.getAvailableAddOns();
+    availableAddOns.value = await appointmentService.getAvailableAddOns(catId, svcId);
   } catch (err) {
     console.error('Failed to fetch add-ons:', err);
   } finally {
@@ -1235,7 +1303,7 @@ const openAddOnDialog = (appt: Appointment) => {
   targetAppointment.value = appt;
   selectedAddOnIds.value = [];
   addOnModalOpen.value = true;
-  void fetchAvailableAddOns();
+  void fetchAvailableAddOns(appt.category_id ?? undefined, appt.service_id ?? undefined);
 };
 
 // Submit Add-Ons attachment

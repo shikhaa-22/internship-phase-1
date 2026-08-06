@@ -27,17 +27,15 @@ export function useAuth() {
         return;
       }
 
-      // Save user session
       localStorage.setItem('token', data.token);
       localStorage.setItem('role', data.role);
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
-      // Redirect based on role
       if (data.role === 'admin') {
         void router.push('/admin/dashboard');
-      } else if (data.role === 'doctor') {
+      } else if (data.role === 'doctor' || data.role === 'provider') {
         void router.push('/doctor/dashboard');
       } else {
         void router.push('/client/dashboard');
