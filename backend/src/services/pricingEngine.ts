@@ -19,9 +19,13 @@ export async function calculateBookingPrice(params: PriceCalculationParams) {
   const { serviceId, providerId: pIdInput, doctorId: dIdInput, addOnIds = [], startTimeStr } = params;
   const targetProviderId = pIdInput || dIdInput;
 
-  // 1. Base Service Fee & Category Details
+  // 1. Base Service Fee & Category / Specialization Details
   const [services]: any = await pool.execute(
-    'SELECT title, base_price, duration_minutes, category_id, specialization_id FROM services WHERE id = ?', 
+    `SELECT s.title, s.base_price, s.duration_minutes, s.category_id, s.specialization_id,
+            sp.seniority_level AS spec_seniority, sp.tier_multiplier AS spec_multiplier
+     FROM services s
+     LEFT JOIN specializations sp ON s.specialization_id = sp.id
+     WHERE s.id = ?`, 
     [serviceId]
   );
   if (!services || !services.length) throw new Error('Service not found');
@@ -30,17 +34,19 @@ export async function calculateBookingPrice(params: PriceCalculationParams) {
   const basePrice = Number(service.base_price);
   let totalDuration = Number(service.duration_minutes);
 
-  // 2. Dynamic Provider Tiering
-  let seniorityLevel = 'standard';
-  let tierMultiplier = 1.00;
-  let tierAdjustment = 0;
+  // 2. Dynamic Specialization / Provider Tiering
+  let seniorityLevel = service.spec_seniority || 'senior';
+  let tierMultiplier = Number(service.spec_multiplier || 1.00);
 
   if (targetProviderId) {
     const [profiles]: any = await pool.execute(
-      `SELECT pp.seniority_level, pp.tier_multiplier, pp.category_id, pp.consultation_fee, u.name AS provider_name, c.name AS category_name
+      `SELECT pp.seniority_level, pp.tier_multiplier, pp.category_id, pp.consultation_fee, 
+              u.name AS provider_name, c.name AS category_name,
+              sp.seniority_level AS spec_seniority, sp.tier_multiplier AS spec_multiplier
        FROM provider_profiles pp 
        JOIN users u ON pp.user_id = u.id 
        LEFT JOIN categories c ON pp.category_id = c.id 
+       LEFT JOIN specializations sp ON pp.specialization_id = sp.id
        WHERE pp.user_id = ?`,
       [targetProviderId]
     );
@@ -55,14 +61,15 @@ export async function calculateBookingPrice(params: PriceCalculationParams) {
         );
       }
 
-      seniorityLevel = prov.seniority_level || 'senior';
-      tierMultiplier = Number(prov.tier_multiplier || 1.00);
-
-      // Tier adjustment calculation
-      if (tierMultiplier > 1.00) {
-        tierAdjustment = basePrice * (tierMultiplier - 1.00);
-      }
+      // Priority: Specialization Fixed Tier -> Provider Profile Tier
+      seniorityLevel = service.spec_seniority || prov.spec_seniority || prov.seniority_level || 'senior';
+      tierMultiplier = Number(service.spec_multiplier || prov.spec_multiplier || prov.tier_multiplier || 1.00);
     }
+  }
+
+  let tierAdjustment = 0;
+  if (tierMultiplier > 1.00) {
+    tierAdjustment = basePrice * (tierMultiplier - 1.00);
   }
 
   // 3. Add-On Services
@@ -72,14 +79,13 @@ export async function calculateBookingPrice(params: PriceCalculationParams) {
   if (addOnIds && addOnIds.length > 0) {
     const placeholders = addOnIds.map(() => '?').join(',');
     const [addOnRows]: any = await pool.execute(
-      `SELECT id, title, price, duration_minutes FROM add_ons WHERE id IN (${placeholders})`,
+      `SELECT id, title, price FROM add_ons WHERE id IN (${placeholders})`,
       addOnIds
     );
 
     for (const row of addOnRows) {
       const itemPrice = Number(row.price);
       addOnsTotal += itemPrice;
-      totalDuration += Number(row.duration_minutes || 0);
       addOnItems.push({
         id: row.id,
         title: row.title,

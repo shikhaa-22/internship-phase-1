@@ -32,11 +32,13 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Specializations table (Optional detailed focus areas within categories)
+-- 3. Specializations table (Fixed focus areas within categories with associated seniority tier)
 CREATE TABLE specializations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     category_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
+    seniority_level ENUM('junior', 'senior', 'lead_specialist') DEFAULT 'senior',
+    tier_multiplier DECIMAL(3,2) DEFAULT 1.15,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
@@ -135,14 +137,17 @@ INSERT INTO categories (id, name, description, icon) VALUES
 (2, 'Wellness & Fitness', 'Personal training sessions, massage therapy, and diet & nutrition planning', 'spa'),
 (3, 'Consulting & Professional Services', 'Legal advisory, business strategy, and financial & tax planning', 'business_center');
 
--- Insert Specializations
-INSERT INTO specializations (id, category_id, name) VALUES 
-(1, 1, 'General Medicine'),
-(2, 1, 'Cardiology'),
-(4, 2, 'Personal Fitness & Workout'),
-(5, 2, 'Massage & Physical Therapy'),
-(7, 3, 'Legal Advisory & Contracts'),
-(8, 3, 'Business Strategy & Growth');
+-- Insert Specializations (Fixed focus areas with attached Seniority Tiers)
+INSERT INTO specializations (id, category_id, name, seniority_level, tier_multiplier) VALUES 
+(1, 1, 'General Medicine', 'junior', 1.00),
+(2, 1, 'Cardiology', 'lead_specialist', 1.30),
+(3, 1, 'Dermatology', 'senior', 1.15),
+(4, 2, 'Personal Fitness & Workout', 'junior', 1.00),
+(5, 2, 'Massage & Physical Therapy', 'senior', 1.15),
+(6, 2, 'Diet & Nutrition Counseling', 'junior', 1.00),
+(7, 3, 'Legal Advisory & Contracts', 'lead_specialist', 1.30),
+(8, 3, 'Business Strategy & Growth', 'lead_specialist', 1.30),
+(9, 3, 'Tax & Financial Advisory', 'senior', 1.15);
 
 -- Insert Users (Clients, Providers, Admin)
 INSERT INTO users (id, name, email, password_hash, role) VALUES 
@@ -161,10 +166,10 @@ INSERT INTO users (id, name, email, password_hash, role) VALUES
 INSERT INTO provider_profiles (user_id, category_id, specialization_id, seniority_level, tier_multiplier, bio, consultation_fee) VALUES 
 (2, 1, 2, 'lead_specialist', 1.30, 'Board-certified chief cardiologist with 15+ years experience.', 150.00),
 (3, 1, 1, 'senior', 1.15, 'Experienced family physician specializing in preventative care.', 100.00),
-(4, 2, 4, 'senior', 1.10, 'Certified master fitness trainer specializing in strength & athletic mobility.', 80.00),
+(4, 2, 4, 'senior', 1.15, 'Certified master fitness trainer specializing in strength & athletic mobility.', 80.00),
 (5, 2, 5, 'senior', 1.15, 'Licensed neuromuscular massage & recovery specialist.', 90.00),
-(6, 3, 7, 'lead_specialist', 1.25, 'Senior corporate attorney specializing in business contracts & compliance.', 200.00),
-(7, 3, 8, 'senior', 1.20, 'Executive strategy consultant advising growth-stage companies.', 250.00);
+(6, 3, 7, 'lead_specialist', 1.30, 'Senior corporate attorney specializing in business contracts & compliance.', 200.00),
+(7, 3, 8, 'senior', 1.15, 'Executive strategy consultant advising growth-stage companies.', 250.00);
 
 -- Insert Services
 INSERT INTO services (id, category_id, specialization_id, title, base_price, duration_minutes) VALUES 

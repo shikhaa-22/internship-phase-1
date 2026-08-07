@@ -16,14 +16,16 @@
             
           </div>
         </div>
+        
         <div class="row items-center q-gutter-sm">
-          <q-btn color="negative" elevated icon="logout" label="Logout" no-caps @click="handleLogout" />
+          <q-btn color="negative" style="border-radius: 8px;" icon="logout" label="Logout" no-caps @click="handleLogout" />
         </div>
       </q-card-section>
+      
       <!-- Quick Metrics Ribbon -->
 
     </q-card>
-
+    <div style="height: 15px;"></div>
     <q-card elevated  class="q-mb-md shadow-2 bg-gradient-primary text-white" style="border-radius: 14px">
       <q-card-section class="row items-center justify-between q-pa-lg bg-white text-primary" >
         <div class="col-xs-6 col-sm-3">
@@ -32,6 +34,15 @@
             <div>
               <div class="text-caption text-grey-7 text-weight-bold">CATEGORIES</div>
               <div class="text-h6 text-weight-bolder text-primary">{{ categories.length }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xs-6 col-sm-3">
+          <div class="row items-center q-gutter-sm">
+            <q-icon name="psychology" color="positive" size="28px" />
+            <div>
+              <div class="text-caption text-grey-7 text-weight-bold">SPECIALIZATIONS</div>
+              <div class="text-h6 text-weight-bolder text-positive">{{ specializations.length }}</div>
             </div>
           </div>
         </div>
@@ -53,48 +64,49 @@
             </div>
           </div>
         </div>
-        <div class="col-xs-6 col-sm-3">
-          <div class="row items-center q-gutter-sm">
-            <q-icon name="psychology" color="positive" size="28px" />
-            <div>
-              <div class="text-caption text-grey-7 text-weight-bold">SPECIALIZATIONS</div>
-              <div class="text-h6 text-weight-bolder text-positive">{{ specializations.length }}</div>
-            </div>
-          </div>
-        </div>
       </q-card-section>
     </q-card>
 
-
+    <div style="height: 15px;"></div>
+      
     <!-- Top Action Bar -->
     <div class="row items-center justify-between q-mb-md">
       <q-tabs v-model="activeTab" dense active-color="primary" indicator-color="primary" align="left" class="bg-white shadow-1" style="border-radius: 10px; padding: 4px;">
         <q-tab name="categories" icon="category" label="Categories" no-caps />
+        <q-tab name="specializations" icon="psychology" label="Specializations" no-caps />
         <q-tab name="services" icon="room_service" label="Services (Prices & Duration)" no-caps />
         <q-tab name="add_ons" icon="extension" label="Add-Ons" no-caps />
-        <q-tab name="specializations" icon="psychology" label="Specializations" no-caps />
+        <q-tab name="seniority" icon="military_tech" label="Seniority Tiers" no-caps />
         <q-tab name="appointments" icon="event_note" label="Appointments" no-caps />
+        
       </q-tabs>
-
       <div class="row q-gutter-sm">
+        
         <q-btn color="primary" icon="add" label="New Category" no-caps elevated style="border-radius: 8px" @click="showCategoryModal = true" />
+        <q-btn color="positive" icon="add" label="New Specialization" no-caps elevated style="border-radius: 8px" @click="showSpecModal = true" />
         <q-btn color="secondary" icon="add" label="New Service" no-caps elevated style="border-radius: 8px" @click="showServiceModal = true" />
         <q-btn color="accent" icon="add" label="New Add-On" no-caps elevated style="border-radius: 8px" @click="showAddOnModal = true" />
-        <q-btn color="positive" icon="add" label="New Specialization" no-caps elevated style="border-radius: 8px" @click="showSpecModal = true" />
-      </div>
+        </div>
     </div>
-
+    
     <!-- Feedback Message Banner -->
-    <q-banner v-if="feedbackMsg" :class="feedbackIsError ? 'bg-negative text-white' : 'bg-positive text-white'" class="q-mb-md shadow-2" style="border-radius: 8px">
-      <template #avatar>
-        <q-icon :name="feedbackIsError ? 'error' : 'check_circle'" color="white" />
-      </template>
-      <div class="text-weight-bold">{{ feedbackMsg }}</div>
-      <template #action>
-        <q-btn elevated color="white" label="Dismiss" no-caps @click="feedbackMsg = ''" />
-      </template>
+    <q-banner
+      v-if="feedbackMsg"
+      dense
+      :class="feedbackIsError ? 'bg-negative text-white' : 'bg-positive text-white'"
+      class="q-mb-sm shadow-1"
+      style="border-radius: 8px"
+    >
+      <div class="row items-center justify-between q-py-xs">
+        <div class="row items-center q-gutter-sm">
+          <q-icon :name="feedbackIsError ? 'error' : 'check_circle'" color="white" size="20px" />
+          <span class="text-weight-medium text-body2">{{ feedbackMsg }}</span>
+        </div>
+        <q-btn elevated style="border-radius: 8px" text-color="black" color="white" label="Dismiss" no-caps size="sm" class="text-weight-bold" @click="feedbackMsg = ''" />
+      </div>
     </q-banner>
 
+    <div style="height: 20px;"></div>
     <!-- TAB 1: CATEGORIES -->
     <div v-if="activeTab === 'categories'">
       <div class="row q-col-gutter-md">
@@ -186,12 +198,6 @@
                 </q-chip>
               </q-td>
             </template>
-            <!-- <template #body-cell-duration_minutes="props">
-              <q-td :props="props">
-                <span v-if="props.value > 0" class="text-weight-bold text-deep-orange">+{{ props.value }} mins</span>
-                <span v-else class="text-grey-6">No extra time</span>
-              </q-td>
-            </template> -->
             <template #body-cell-category_name="props">
               <q-td :props="props">
                 <q-chip v-if="props.value" color="blue-1" text-color="blue-9" dense>{{ props.value }}</q-chip>
@@ -224,9 +230,74 @@
             row-key="id"
             :pagination="{ rowsPerPage: 10 }"
           >
+            <template #body-cell-seniority_level="props">
+              <q-td :props="props">
+                <q-select
+                  v-model="props.row.seniority_level"
+                  :options="seniorityOptions"
+                  dense
+                  outlined
+                  emit-value
+                  map-options
+                  style="min-width: 250px"
+                  @update:model-value="(val) => changeSpecSeniority(props.row.id, val)"
+                />
+              </q-td>
+            </template>
+            <template #body-cell-tier_multiplier="props">
+              <q-td :props="props" align="center">
+                <q-chip :color="props.value > 1.2 ? 'deep-orange' : (props.value > 1.0 ? 'positive' : 'grey-7')" text-color="white" class="text-weight-bold">
+                  {{ Number(props.value || 1.15).toFixed(2) }}x (+{{ Math.round(((Number(props.value || 1.15)) - 1) * 100) }}%)
+                </q-chip>
+              </q-td>
+            </template>
             <template #body-cell-actions="props">
               <q-td :props="props" align="center">
                 <q-btn color="negative" elevated round icon="delete" size="sm" @click="confirmDeleteSpec(props.row)" />
+              </q-td>
+            </template>
+          </q-table>
+        </q-card-section>
+      </q-card>
+    </div>
+
+    <!-- TAB: SPECIALIST SENIORITY TIERS -->
+    <div v-if="activeTab === 'seniority'">
+      <q-card elevated bordered class="shadow-1" style="border-radius: 12px">
+        <q-card-section class="row items-center justify-between">
+          <div>
+            <div class="text-h6 text-weight-bold text-primary">Specialist Seniority Levels & Dynamic Pricing Tiers</div>
+            <div class="text-subtitle2 text-grey-7">Select a specialist's seniority level to dynamically adjust their pricing multiplier in the booking engine</div>
+          </div>
+        </q-card-section>
+        <q-card-section class="q-pa-none">
+          <q-table
+            elevated
+            bordered
+            :rows="providers"
+            :columns="providerColumns"
+            row-key="id"
+            :pagination="{ rowsPerPage: 10 }"
+          >
+            <template #body-cell-seniority_level="props">
+              <q-td :props="props">
+                <q-select
+                  v-model="props.row.seniority_level"
+                  :options="seniorityOptions"
+                  dense
+                  outlined
+                  emit-value
+                  map-options
+                  style="min-width: 280px"
+                  @update:model-value="(val) => changeProviderSeniority(props.row.id, val)"
+                />
+              </q-td>
+            </template>
+            <template #body-cell-tier_multiplier="props">
+              <q-td :props="props" align="center">
+                <q-chip :color="props.value > 1.2 ? 'deep-orange' : (props.value > 1.0 ? 'primary' : 'grey-7')" text-color="white" class="text-weight-bold">
+                  {{ Number(props.value || 1).toFixed(2) }}x (+{{ Math.round(((Number(props.value || 1)) - 1) * 100) }}% adjustment)
+                </q-chip>
               </q-td>
             </template>
           </q-table>
@@ -432,31 +503,16 @@
               dense
               rows="2"
             />
-            <div class="row q-col-gutter-md">
-              <div class="col-6">
-                <q-input
-                  v-model.number="newAddOn.price"
-                  label="Price ($) *"
-                  type="number"
-                  prefix="$"
-                  step="0.01"
-                  outlined
-                  dense
-                  :rules="[val => val !== null && val >= 0 || 'Valid price required']"
-                />
-              </div>
-              <div class="col-6">
-                <q-input
-                  v-model.number="newAddOn.duration_minutes"
-                  label="Extra Time (mins)"
-                  type="number"
-                  suffix="mins"
-                  step="5"
-                  outlined
-                  dense
-                />
-              </div>
-            </div>
+            <q-input
+              v-model.number="newAddOn.price"
+              label="Price ($) *"
+              type="number"
+              prefix="$"
+              step="0.01"
+              outlined
+              dense
+              :rules="[val => val !== null && val >= 0 || 'Valid price required']"
+            />
 
             <div class="row justify-end q-gutter-sm q-mt-lg">
               <q-btn elevated label="Cancel" color="grey-7" v-close-popup no-caps />
@@ -546,6 +602,18 @@ interface SpecializationItem {
   category_name?: string;
 }
 
+interface ProviderItem {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  category_name?: string;
+  specialization_name?: string;
+  seniority_level: string;
+  tier_multiplier: number;
+  consultation_fee: number;
+}
+
 interface AdminAppointmentItem {
   id: number;
   client_name: string;
@@ -559,7 +627,7 @@ interface AdminAppointmentItem {
 
 const router = useRouter();
 
-const activeTab = ref('categories');
+const activeTab = ref<string>('categories');
 const submitting = ref(false);
 const feedbackMsg = ref('');
 const feedbackIsError = ref(false);
@@ -568,7 +636,14 @@ const categories = ref<CategoryItem[]>([]);
 const services = ref<ServiceItem[]>([]);
 const addOns = ref<AddOnItem[]>([]);
 const specializations = ref<SpecializationItem[]>([]);
+const providers = ref<ProviderItem[]>([]);
 const adminAppointments = ref<AdminAppointmentItem[]>([]);
+
+const seniorityOptions = [
+  { label: 'Junior Practitioner (1.00x Base)', value: 'junior' },
+  { label: 'Senior Specialist (1.15x Tier)', value: 'senior' },
+  { label: 'Lead Specialist / Chief (1.30x Tier)', value: 'lead_specialist' },
+];
 
 // Modals
 const showCategoryModal = ref(false);
@@ -630,7 +705,6 @@ const addOnColumns = [
   { name: 'description', label: 'Description', field: 'description', align: 'left' as const },
   { name: 'category_name', label: 'Scope / Category', field: 'category_name', align: 'left' as const },
   { name: 'price', label: 'Price ($)', field: 'price', align: 'right' as const },
-  { name: 'duration_minutes', label: 'Extra Time', field: 'duration_minutes', align: 'center' as const },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'center' as const }
 ];
 
@@ -638,6 +712,8 @@ const specColumns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left' as const },
   { name: 'name', label: 'Specialization Name', field: 'name', align: 'left' as const },
   { name: 'category_name', label: 'Category', field: 'category_name', align: 'left' as const },
+  { name: 'seniority_level', label: 'Fixed Seniority Tier', field: 'seniority_level', align: 'left' as const },
+  { name: 'tier_multiplier', label: 'Pricing Multiplier', field: 'tier_multiplier', align: 'center' as const },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'center' as const }
 ];
 
@@ -652,25 +728,56 @@ const apptColumns = [
   { name: 'total_amount', label: 'Total Paid', field: 'total_amount', align: 'right' as const }
 ];
 
+const providerColumns = [
+  { name: 'id', label: 'ID', field: 'id', align: 'left' as const },
+  { name: 'name', label: 'Specialist Name', field: 'name', align: 'left' as const, sortable: true },
+  { name: 'category_name', label: 'Category', field: 'category_name', align: 'left' as const, sortable: true },
+  { name: 'specialization_name', label: 'Fixed Specialization', field: 'specialization_name', align: 'left' as const },
+  { name: 'seniority_level', label: 'Seniority Tier', field: 'seniority_level', align: 'left' as const },
+  { name: 'tier_multiplier', label: 'Pricing Multiplier', field: 'tier_multiplier', align: 'center' as const }
+];
+
 const getErrorMessage = (err: unknown): string => {
   if (err instanceof Error) return err.message;
   return String(err);
 };
 
+const changeProviderSeniority = async (providerId: number, level: string) => {
+  try {
+    const res = await appointmentService.updateProviderSeniority(providerId, level);
+    showFeedback(res.message || 'Seniority level updated successfully!');
+    await loadAllData();
+  } catch (err: unknown) {
+    showFeedback(getErrorMessage(err) || 'Failed to update seniority level', true);
+  }
+};
+
+const changeSpecSeniority = async (specId: number, level: string) => {
+  try {
+    const res = await appointmentService.updateSpecializationSeniority(specId, level);
+    showFeedback(res.message || 'Specialization tier updated successfully!');
+    await loadAllData();
+  } catch (err: unknown) {
+    showFeedback(getErrorMessage(err) || 'Failed to update specialization tier', true);
+  }
+};
+
 const loadAllData = async () => {
   try {
-    const [cats, svcs, addOnsData, specs, appts] = await Promise.all([
+    const [cats, svcs, addOnsData, specs, appts, provs] = await Promise.all([
       appointmentService.getCategories(),
       appointmentService.getServices(),
       appointmentService.getAvailableAddOns(),
       appointmentService.getSpecializations(),
-      appointmentService.getAdminAppointments()
+      appointmentService.getAdminAppointments(),
+      appointmentService.getProviders()
     ]);
     categories.value = cats;
     services.value = svcs;
     addOns.value = addOnsData;
     specializations.value = specs;
     adminAppointments.value = appts;
+    providers.value = provs;
   } catch (err: unknown) {
     showFeedback(getErrorMessage(err) || 'Failed to load system data', true);
   }

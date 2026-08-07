@@ -8,8 +8,21 @@ dotenv.config();
 const PORT = process.env.PORT || 5001;
 
 pool.getConnection()
-  .then((connection) => {
+  .then(async (connection) => {
     console.log('Successfully connected to MySQL database!');
+    try {
+      await connection.execute("ALTER TABLE specializations ADD COLUMN seniority_level ENUM('junior', 'senior', 'lead_specialist') DEFAULT 'senior'");
+    } catch (_e) { /* Column already exists */ }
+    try {
+      await connection.execute("ALTER TABLE specializations ADD COLUMN tier_multiplier DECIMAL(3,2) DEFAULT 1.15");
+    } catch (_e) { /* Column already exists */ }
+    try {
+      await connection.execute("UPDATE provider_profiles SET tier_multiplier = 1.00 WHERE seniority_level = 'junior'");
+      await connection.execute("UPDATE provider_profiles SET tier_multiplier = 1.15 WHERE seniority_level = 'senior'");
+      await connection.execute("UPDATE provider_profiles SET tier_multiplier = 1.30 WHERE seniority_level = 'lead_specialist'");
+    } catch (_e) {
+      // Ignore if table not created yet
+    }
     connection.release();
   })
   .catch((err) => {
@@ -105,20 +118,77 @@ app.get('/api/specializations', async (req: Request, res: Response) => {
 // POST create new specialization
 app.post('/api/specializations', async (req: Request, res: Response) => {
   try {
-    const { category_id, categoryId, name } = req.body;
+    const { category_id, categoryId, name, seniority_level } = req.body;
     const catId = Number(category_id || categoryId);
     if (!catId || isNaN(catId)) return res.status(400).json({ error: 'Valid category_id is required' });
     if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ error: 'Specialization name is required' });
     }
     const cleanName = name.trim();
-    const [result]: any = await pool.execute(
-      'INSERT INTO specializations (category_id, name) VALUES (?, ?)',
-      [catId, cleanName]
-    );
+    const level = seniority_level || 'senior';
+    const validLevels: Record<string, number> = { junior: 1.00, senior: 1.15, lead_specialist: 1.30 };
+    const multiplier = validLevels[level] || 1.15;
+
+    let result: any;
+    try {
+      const [resArr]: any = await pool.execute(
+        'INSERT INTO specializations (category_id, name, seniority_level, tier_multiplier) VALUES (?, ?, ?, ?)',
+        [catId, cleanName, level, multiplier]
+      );
+      result = resArr;
+    } catch (_e) {
+      const [resArr]: any = await pool.execute(
+        'INSERT INTO specializations (category_id, name) VALUES (?, ?)',
+        [catId, cleanName]
+      );
+      result = resArr;
+    }
+
     res.status(201).json({
       message: 'Specialization created successfully',
-      specialization: { id: result.insertId, category_id: catId, name: cleanName }
+      specialization: { id: result.insertId, category_id: catId, name: cleanName, seniority_level: level, tier_multiplier: multiplier }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+// PUT update specialization seniority tier and multiplier
+app.put('/api/specializations/:id/seniority', async (req: Request, res: Response) => {
+  try {
+    const specId = Number(req.params.id);
+    const { seniority_level } = req.body;
+
+    if (!specId || isNaN(specId)) return res.status(400).json({ error: 'Invalid specialization ID' });
+
+    const validLevels: Record<string, number> = { junior: 1.00, senior: 1.15, lead_specialist: 1.30 };
+    if (!seniority_level || !validLevels[seniority_level]) {
+      return res.status(400).json({ error: 'Invalid seniority_level. Must be junior, senior, or lead_specialist' });
+    }
+
+    const multiplier = validLevels[seniority_level];
+
+    // Update specialization row
+    const [result]: any = await pool.execute(
+      'UPDATE specializations SET seniority_level = ?, tier_multiplier = ? WHERE id = ?',
+      [seniority_level, multiplier, specId]
+    );
+
+    // Sync all provider profiles linked to this specialization
+    await pool.execute(
+      'UPDATE provider_profiles SET seniority_level = ?, tier_multiplier = ? WHERE specialization_id = ?',
+      [seniority_level, multiplier, specId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Specialization not found' });
+    }
+
+    res.json({
+      message: 'Specialization fixed tier updated successfully',
+      specId,
+      seniority_level,
+      tier_multiplier: multiplier
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Internal Server Error' });
@@ -256,6 +326,50 @@ const getProvidersHandler = async (req: Request, res: Response) => {
 
 app.get('/api/providers', getProvidersHandler);
 app.get('/api/doctors', getProvidersHandler);
+
+const updateSeniorityHandler = async (req: Request, res: Response) => {
+  try {
+    const providerId = Number(req.params.id);
+    const { seniority_level } = req.body;
+
+    if (!providerId || isNaN(providerId)) {
+      return res.status(400).json({ error: 'Invalid provider ID' });
+    }
+
+    const validLevels: Record<string, number> = {
+      junior: 1.00,
+      senior: 1.15,
+      lead_specialist: 1.30
+    };
+
+    if (!seniority_level || !validLevels[seniority_level]) {
+      return res.status(400).json({ error: 'Invalid seniority_level. Must be junior, senior, or lead_specialist' });
+    }
+
+    const multiplier = validLevels[seniority_level];
+
+    const [result]: any = await pool.execute(
+      'UPDATE provider_profiles SET seniority_level = ?, tier_multiplier = ? WHERE user_id = ?',
+      [seniority_level, multiplier, providerId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Provider profile not found' });
+    }
+
+    res.json({
+      message: 'Provider seniority updated successfully',
+      providerId,
+      seniority_level,
+      tier_multiplier: multiplier
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+};
+
+app.put('/api/providers/:id/seniority', updateSeniorityHandler);
+app.put('/api/doctors/:id/seniority', updateSeniorityHandler);
 
 // GET provider's appointments for a given date (used for slot calculations)
 const getProviderAppointmentsHandler = async (req: Request, res: Response) => {
@@ -533,20 +647,29 @@ app.post('/api/add-ons', async (req: Request, res: Response) => {
     const cleanTitle = title.trim();
     const cleanDesc = description ? String(description).trim() : null;
 
-    const [result]: any = await pool.execute(
-      'INSERT INTO add_ons (category_id, title, description, price, duration_minutes) VALUES (?, ?, ?, ?, ?)',
-      [catId, cleanTitle, cleanDesc, itemPrice, duration]
-    );
+    let insertId: number;
+    try {
+      const [result]: any = await pool.execute(
+        'INSERT INTO add_ons (category_id, title, description, price) VALUES (?, ?, ?, ?)',
+        [catId, cleanTitle, cleanDesc, itemPrice]
+      );
+      insertId = result.insertId;
+    } catch (_err: any) {
+      const [result]: any = await pool.execute(
+        'INSERT INTO add_ons (category_id, title, description, price, duration_minutes) VALUES (?, ?, ?, ?, ?)',
+        [catId, cleanTitle, cleanDesc, itemPrice, duration]
+      );
+      insertId = result.insertId;
+    }
 
     res.status(201).json({
       message: 'Add-on created successfully',
       addOn: {
-        id: result.insertId,
+        id: insertId,
         category_id: catId,
         title: cleanTitle,
         description: cleanDesc,
-        price: itemPrice,
-        duration_minutes: duration
+        price: itemPrice
       }
     });
   } catch (error: any) {

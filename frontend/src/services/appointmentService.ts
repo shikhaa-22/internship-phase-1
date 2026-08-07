@@ -51,6 +51,29 @@ export interface SpecializationParams {
 
 export const appointmentService = {
   /**
+   * Fetch all providers / specialists
+   */
+  async getProviders() {
+    const response = await fetch(`${API_BASE}/providers`);
+    if (!response.ok) throw new Error('Failed to fetch providers');
+    return response.json();
+  },
+
+  /**
+   * Update provider seniority level
+   */
+  async updateProviderSeniority(providerId: number, seniorityLevel: string) {
+    const response = await fetch(`${API_BASE}/providers/${providerId}/seniority`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seniority_level: seniorityLevel }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to update provider seniority');
+    return data;
+  },
+
+  /**
    * Fetch all categories
    */
   async getCategories() {
@@ -142,6 +165,20 @@ export const appointmentService = {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Failed to add specialization');
+    return data;
+  },
+
+  /**
+   * Update fixed seniority tier of a specialization
+   */
+  async updateSpecializationSeniority(specId: number, seniorityLevel: string) {
+    const response = await fetch(`${API_BASE}/specializations/${specId}/seniority`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seniority_level: seniorityLevel }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to update specialization tier');
     return data;
   },
 

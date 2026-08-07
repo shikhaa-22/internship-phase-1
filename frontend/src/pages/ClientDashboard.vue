@@ -4,7 +4,10 @@
     <q-card elevated bordered class="q-pa-md shadow-1" style="border-radius: 12px">
       <q-card-section class="row items-center justify-between">
         <div>
-          <div class="text-h5 text-weight-bold text-primary">Hello {{ userName }}</div>
+          <div class="text-h5 text-weight-bold text-primary">
+            <q-icon size="44px" name="account_circle" class="q-mr-sm" />
+            Hello {{ userName }}
+          </div>
           <div class="text-subtitle2 text-grey-7">Welcome to your multi-category appointment dashboard</div>
         </div>
         <q-btn color="negative" elevated icon="logout" label="Logout" no-caps @click="handleLogout" />
