@@ -108,6 +108,9 @@
             <div class="col-auto">
               <q-btn size="sm" outline color="indigo" label="Consultant (Sarah)" no-caps @click="fillCredentials('sarah@example.com', 'hashed_pass_123')" />
             </div>
+            <div class="col-auto">
+              <q-btn size="sm" outline color="indigo" label="Admin (admin)" no-caps @click="fillCredentials('admin@example.com', 'hashed_pass_123')" />
+            </div>
           </div>
         </q-card-section>
       </q-card>

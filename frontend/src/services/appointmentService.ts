@@ -22,7 +22,176 @@ export interface CancelAppointmentParams {
   cancellationReason: string;
 }
 
+export interface CategoryParams {
+  name: string;
+  description?: string;
+  icon?: string;
+}
+
+export interface ServiceParams {
+  category_id: number;
+  specialization_id?: number | null;
+  title: string;
+  base_price: number;
+  duration_minutes: number;
+}
+
+export interface AddOnParams {
+  category_id?: number | null;
+  title: string;
+  description?: string;
+  price: number;
+  duration_minutes?: number;
+}
+
+export interface SpecializationParams {
+  category_id: number;
+  name: string;
+}
+
 export const appointmentService = {
+  /**
+   * Fetch all categories
+   */
+  async getCategories() {
+    const response = await fetch(`${API_BASE}/categories`);
+    if (!response.ok) throw new Error('Failed to fetch categories');
+    return response.json();
+  },
+
+  /**
+   * Add a new category
+   */
+  async addCategory(params: CategoryParams) {
+    const response = await fetch(`${API_BASE}/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to add category');
+    return data;
+  },
+
+  /**
+   * Delete a category
+   */
+  async deleteCategory(id: number) {
+    const response = await fetch(`${API_BASE}/categories/${id}`, {
+      method: 'DELETE',
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to delete category');
+    return data;
+  },
+
+  /**
+   * Fetch services (optional category filter)
+   */
+  async getServices(categoryId?: number) {
+    const url = categoryId ? `${API_BASE}/services?categoryId=${categoryId}` : `${API_BASE}/services`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch services');
+    return response.json();
+  },
+
+  /**
+   * Add a new service
+   */
+  async addService(params: ServiceParams) {
+    const response = await fetch(`${API_BASE}/services`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to add service');
+    return data;
+  },
+
+  /**
+   * Delete a service
+   */
+  async deleteService(id: number) {
+    const response = await fetch(`${API_BASE}/services/${id}`, {
+      method: 'DELETE',
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to delete service');
+    return data;
+  },
+
+  /**
+   * Fetch specializations (optional category filter)
+   */
+  async getSpecializations(categoryId?: number) {
+    const url = categoryId ? `${API_BASE}/specializations?categoryId=${categoryId}` : `${API_BASE}/specializations`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch specializations');
+    return response.json();
+  },
+
+  /**
+   * Add a new specialization
+   */
+  async addSpecialization(params: SpecializationParams) {
+    const response = await fetch(`${API_BASE}/specializations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to add specialization');
+    return data;
+  },
+
+  /**
+   * Delete a specialization
+   */
+  async deleteSpecialization(id: number) {
+    const response = await fetch(`${API_BASE}/specializations/${id}`, {
+      method: 'DELETE',
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to delete specialization');
+    return data;
+  },
+
+  /**
+   * Add a new add-on service
+   */
+  async addAddOn(params: AddOnParams) {
+    const response = await fetch(`${API_BASE}/add-ons`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to add add-on');
+    return data;
+  },
+
+  /**
+   * Delete an add-on service
+   */
+  async deleteAddOn(id: number) {
+    const response = await fetch(`${API_BASE}/add-ons/${id}`, {
+      method: 'DELETE',
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to delete add-on');
+    return data;
+  },
+
+  /**
+   * Fetch admin appointment overview
+   */
+  async getAdminAppointments() {
+    const response = await fetch(`${API_BASE}/appointments/admin`);
+    if (!response.ok) throw new Error('Failed to fetch admin appointments');
+    return response.json();
+  },
+
   /**
    * Fetch all appointments for a specific doctor
    */
@@ -131,3 +300,4 @@ export const appointmentService = {
     return response.json();
   },
 };
+

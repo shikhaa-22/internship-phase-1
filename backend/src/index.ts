@@ -30,24 +30,184 @@ app.get('/api/categories', async (_req: Request, res: Response) => {
   }
 });
 
-// GET services (optional category filter)
-app.get('/api/services', async (req: Request, res: Response) => {
+// POST create new category
+app.post('/api/categories', async (req: Request, res: Response) => {
   try {
-    const categoryId = req.query.categoryId ? Number(req.query.categoryId) : null;
-    let query = 'SELECT * FROM services';
-    const params: any[] = [];
+    const { name, description, icon } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'Category name is required' });
+    }
+    const cleanName = name.trim();
+    const cleanDesc = description ? String(description).trim() : null;
+    const cleanIcon = icon && String(icon).trim() ? String(icon).trim() : 'event';
 
-    if (categoryId && !isNaN(categoryId)) {
-      query += ' WHERE category_id = ?';
-      params.push(categoryId);
+    const [existing]: any = await pool.execute('SELECT id FROM categories WHERE LOWER(name) = LOWER(?)', [cleanName]);
+    if (existing && existing.length > 0) {
+      return res.status(400).json({ error: 'Category with this name already exists' });
     }
 
+    const [result]: any = await pool.execute(
+      'INSERT INTO categories (name, description, icon) VALUES (?, ?, ?)',
+      [cleanName, cleanDesc, cleanIcon]
+    );
+
+    res.status(201).json({
+      message: 'Category created successfully',
+      category: {
+        id: result.insertId,
+        name: cleanName,
+        description: cleanDesc,
+        icon: cleanIcon
+      }
+    });
+  } catch (error: any) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'Category with this name already exists' });
+    }
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+// DELETE category
+app.delete('/api/categories/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) return res.status(400).json({ error: 'Invalid category id' });
+
+    const [result]: any = await pool.execute('DELETE FROM categories WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    res.json({ message: 'Category deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+// GET specializations (optional category filter)
+app.get('/api/specializations', async (req: Request, res: Response) => {
+  try {
+    const categoryId = req.query.categoryId ? Number(req.query.categoryId) : null;
+    let query = 'SELECT s.*, c.name AS category_name FROM specializations s LEFT JOIN categories c ON s.category_id = c.id';
+    const params: any[] = [];
+    if (categoryId && !isNaN(categoryId)) {
+      query += ' WHERE s.category_id = ?';
+      params.push(categoryId);
+    }
+    query += ' ORDER BY s.id ASC';
     const [rows] = await pool.execute(query, params);
     res.json(rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 });
+
+// POST create new specialization
+app.post('/api/specializations', async (req: Request, res: Response) => {
+  try {
+    const { category_id, categoryId, name } = req.body;
+    const catId = Number(category_id || categoryId);
+    if (!catId || isNaN(catId)) return res.status(400).json({ error: 'Valid category_id is required' });
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'Specialization name is required' });
+    }
+    const cleanName = name.trim();
+    const [result]: any = await pool.execute(
+      'INSERT INTO specializations (category_id, name) VALUES (?, ?)',
+      [catId, cleanName]
+    );
+    res.status(201).json({
+      message: 'Specialization created successfully',
+      specialization: { id: result.insertId, category_id: catId, name: cleanName }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+// DELETE specialization
+app.delete('/api/specializations/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) return res.status(400).json({ error: 'Invalid specialization id' });
+    const [result]: any = await pool.execute('DELETE FROM specializations WHERE id = ?', [id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Specialization not found' });
+    res.json({ message: 'Specialization deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+// GET services (optional category filter)
+app.get('/api/services', async (req: Request, res: Response) => {
+  try {
+    const categoryId = req.query.categoryId ? Number(req.query.categoryId) : null;
+    let query = 'SELECT s.*, c.name AS category_name, sp.name AS specialization_name FROM services s LEFT JOIN categories c ON s.category_id = c.id LEFT JOIN specializations sp ON s.specialization_id = sp.id';
+    const params: any[] = [];
+
+    if (categoryId && !isNaN(categoryId)) {
+      query += ' WHERE s.category_id = ?';
+      params.push(categoryId);
+    }
+
+    query += ' ORDER BY s.id ASC';
+    const [rows] = await pool.execute(query, params);
+    res.json(rows);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+// POST create new service
+app.post('/api/services', async (req: Request, res: Response) => {
+  try {
+    const { category_id, categoryId, specialization_id, specializationId, title, base_price, basePrice, duration_minutes, durationMinutes } = req.body;
+    const catId = Number(category_id || categoryId);
+    const specId = (specialization_id || specializationId) ? Number(specialization_id || specializationId) : null;
+    const price = Number(base_price ?? basePrice);
+    const duration = Number(duration_minutes ?? durationMinutes);
+
+    if (!catId || isNaN(catId)) return res.status(400).json({ error: 'Valid category_id is required' });
+    if (!title || typeof title !== 'string' || !title.trim()) return res.status(400).json({ error: 'Service title is required' });
+    if (isNaN(price) || price < 0) return res.status(400).json({ error: 'Valid non-negative base_price is required' });
+    if (!duration || isNaN(duration) || duration <= 0) return res.status(400).json({ error: 'Valid positive duration_minutes is required' });
+
+    const cleanTitle = title.trim();
+
+    const [result]: any = await pool.execute(
+      'INSERT INTO services (category_id, specialization_id, title, base_price, duration_minutes) VALUES (?, ?, ?, ?, ?)',
+      [catId, specId, cleanTitle, price, duration]
+    );
+
+    res.status(201).json({
+      message: 'Service created successfully',
+      service: {
+        id: result.insertId,
+        category_id: catId,
+        specialization_id: specId,
+        title: cleanTitle,
+        base_price: price,
+        duration_minutes: duration
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+// DELETE service
+app.delete('/api/services/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) return res.status(400).json({ error: 'Invalid service id' });
+    const [result]: any = await pool.execute('DELETE FROM services WHERE id = ?', [id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Service not found' });
+    res.json({ message: 'Service deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
 
 // GET providers / specialists (optional categoryId or serviceId filter)
 const getProvidersHandler = async (req: Request, res: Response) => {
@@ -337,26 +497,76 @@ app.get('/api/add-ons', async (req: Request, res: Response) => {
   try {
     const categoryId = req.query.categoryId ? Number(req.query.categoryId) : null;
     const serviceId = req.query.serviceId ? Number(req.query.serviceId) : null;
-    let query = 'SELECT * FROM add_ons';
+    let query = 'SELECT ao.*, c.name AS category_name FROM add_ons ao LEFT JOIN categories c ON ao.category_id = c.id';
     const params: any[] = [];
 
     if (serviceId && !isNaN(serviceId)) {
       const [svcRows]: any = await pool.execute('SELECT category_id FROM services WHERE id = ?', [serviceId]);
       if (svcRows && svcRows.length > 0 && svcRows[0].category_id) {
-        query += ' WHERE category_id = ? OR category_id IS NULL';
+        query += ' WHERE ao.category_id = ? OR ao.category_id IS NULL';
         params.push(svcRows[0].category_id);
       }
     } else if (categoryId && !isNaN(categoryId)) {
-      query += ' WHERE category_id = ? OR category_id IS NULL';
+      query += ' WHERE ao.category_id = ? OR ao.category_id IS NULL';
       params.push(categoryId);
     }
 
+    query += ' ORDER BY ao.id ASC';
     const [rows] = await pool.execute(query, params);
     res.json(rows);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 });
+
+// POST create new add-on
+app.post('/api/add-ons', async (req: Request, res: Response) => {
+  try {
+    const { category_id, categoryId, title, description, price, duration_minutes, durationMinutes } = req.body;
+    const catId = (category_id || categoryId) ? Number(category_id || categoryId) : null;
+    const itemPrice = Number(price);
+    const duration = (duration_minutes ?? durationMinutes) ? Number(duration_minutes ?? durationMinutes) : 0;
+
+    if (!title || typeof title !== 'string' || !title.trim()) return res.status(400).json({ error: 'Add-on title is required' });
+    if (isNaN(itemPrice) || itemPrice < 0) return res.status(400).json({ error: 'Valid non-negative price is required' });
+
+    const cleanTitle = title.trim();
+    const cleanDesc = description ? String(description).trim() : null;
+
+    const [result]: any = await pool.execute(
+      'INSERT INTO add_ons (category_id, title, description, price, duration_minutes) VALUES (?, ?, ?, ?, ?)',
+      [catId, cleanTitle, cleanDesc, itemPrice, duration]
+    );
+
+    res.status(201).json({
+      message: 'Add-on created successfully',
+      addOn: {
+        id: result.insertId,
+        category_id: catId,
+        title: cleanTitle,
+        description: cleanDesc,
+        price: itemPrice,
+        duration_minutes: duration
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+// DELETE add-on
+app.delete('/api/add-ons/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) return res.status(400).json({ error: 'Invalid add-on id' });
+    const [result]: any = await pool.execute('DELETE FROM add_ons WHERE id = ?', [id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Add-on not found' });
+    res.json({ message: 'Add-on deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
 
 app.post('/api/calculate-price', async (req: Request, res: Response) => {
   try {

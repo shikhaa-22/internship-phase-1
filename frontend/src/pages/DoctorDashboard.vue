@@ -9,11 +9,11 @@
       >
         <q-card-section class="row items-center justify-between q-pa-xs">
           <div class="row items-center q-gutter-sm">
-            <q-avatar size="44px" color="blue-7" text-color="white" icon="medical_services" />
+            <q-avatar size="44px" color="primary" text-color="white" icon="medical_services" />
             <div>
               <div class="row items-center q-gutter-xs">
                 <span class="text-h6 text-weight-bold text-slate-900">{{ currentDoctorName }}</span>
-                <q-chip color="blue-1" text-color="blue-8" size="sm" class="text-weight-bold">
+                <q-chip color="blue-1" text-color="primary" size="sm" class="text-weight-bold">
                   Provider Schedule
                 </q-chip>
               </div>
@@ -25,7 +25,7 @@
 
           <div class="row items-center q-gutter-xs">
             <q-btn
-              color="blue-7"
+              color="primary"
               
               dense
               class="q-px-sm"
@@ -48,7 +48,7 @@
           </div>
         </q-card-section>
       </q-card>
-
+      <div style="height: 20px;"></div>
       <div class="row q-col-gutter-sm q-mb-sm">
         <div class="col-12 col-md-6">
           <q-card
@@ -59,7 +59,7 @@
           >
             <q-card-section class="q-pa-sm">
               <div class="row items-center justify-between q-mb-xs">
-                <div class="text-subtitle1 text-weight-bold text-blue-9 row items-center">
+                <div class="text-subtitle1 text-weight-bold text-primary row items-center">
                   <q-icon name="event" class="q-mr-xs" size="sm" />
                   Calendar Schedule
                 </div>
@@ -68,7 +68,7 @@
                     size="sm"
                     elevated
                     no-caps
-                    :color="selectedDate === todayDate ? 'blue-7' : 'slate-100'"
+                    :color="selectedDate === todayDate ? 'primary' : 'slate-100'"
                     :text-color="selectedDate === todayDate ? 'white' : 'slate-700'"
                     label="Today"
                     class="q-px-sm"
@@ -78,7 +78,7 @@
                     size="sm"
                     elevated
                     no-caps
-                    :color="selectedDate === tomorrowDate ? 'blue-7' : 'slate-100'"
+                    :color="selectedDate === tomorrowDate ? 'primary' : 'slate-100'"
                     :text-color="selectedDate === tomorrowDate ? 'white' : 'slate-700'"
                     label="Tomorrow"
                     class="q-px-sm"
@@ -113,7 +113,7 @@
                 elevated
                 bordered
                 class="bg-slate-50 border-slate fill-height column items-center justify-center q-pa-sm text-center"
-                style="border-radius: 10px"
+                style="border-radius: 12px"
               >
                 <div class="text-h4 text-weight-bold text-slate-800">
                   {{ totalSlotsCount }}
@@ -141,10 +141,10 @@
                 class="bg-green-50 border-emerald-subtle fill-height column items-center justify-center q-pa-sm text-center"
                 style="border-radius: 10px"
               >
-                <div class="text-h4 text-weight-bold text-green-9">
+                <div class="text-h4 text-weight-bold text-primary">
                   {{ completedSlotsCount }}
                 </div>
-                <div class="text-body2 text-green-8 text-weight-bold q-mt-xs">Completed</div>
+                <div class="text-body2 text-primary text-weight-bold q-mt-xs">Completed</div>
               </q-card>
             </div>
             <div class="col-6 col-sm-3">
@@ -170,14 +170,14 @@
       
       <div class="row items-center justify-between q-mb-md">
         <div class="row items-center">
-          <q-icon name="schedule" color="blue-7" class="q-mr-xs" size="sm" />
+          <q-icon name="schedule" color="primary" class="q-mr-xs" size="sm" />
           <span class="text-subtitle1 text-weight-bold text-slate-900">
             Daily Roster — {{ formattedSelectedDate }}
           </span>
         </div>
         <div class="row items-center q-gutter-xs">
           <q-badge color="blue-7" label="Confirmed" size="sm" class="q-px-xs" />
-          <q-badge color="green-8" label="Completed" size="sm" class="q-px-xs" />
+          <q-badge color="primary" label="Completed" size="sm" class="q-px-xs" />
           <q-badge color="amber-8" label="Break" size="sm" class="q-px-xs" />
           <q-badge color="red-6" label="Cancelled" size="sm" class="q-px-xs" />
         </div>
@@ -311,7 +311,7 @@
               <div class="row items-center justify-between">
                 <div class="row items-center q-gutter-xs">
                   <q-chip
-                    color="positive"
+                    color="primary"
                     text-color="white"
                     icon="access_time"
                     class="text-weight-bold"
@@ -322,8 +322,8 @@
                     {{ formatApptTimeRange(slot.appointment, slot.slotTime) }}
                   </q-chip>
                   <q-chip
-                    color="green-2"
-                    text-color="green-10"
+                    color="primary"
+                    text-color="white"
                     size="sm"
                     dense
                     icon="check_circle"
@@ -352,14 +352,14 @@
 
               <div class="row items-center justify-between">
                 <div
-                  class="bg-green-1 text-grey-9 q-pa-sm border-green-soft rounded-borders text-body2 col"
+                  class="bg-green-1 text-grey-9 q-pa-sm border-primary-soft rounded-borders text-body2 col"
                 >
                   <div>
-                    <span class="text-weight-bold text-green-9">{{ getDiagnosisNotesTitle(slot.appointment.category_name) }} </span>
+                    <span class="text-weight-bold text-primary">{{ getDiagnosisNotesTitle(slot.appointment.category_name) }} </span>
                     <span>"{{ slot.appointment.clinical_notes || 'Consultation completed' }}"</span>
                   </div>
                   <div class="q-mt-xs">
-                    <span class="text-weight-bold text-green-9"
+                    <span class="text-weight-bold text-primary"
                       >{{ getPrescriptionTitle(slot.appointment.category_name) }}
                     </span>
                     <span class="text-weight-medium">{{

@@ -139,13 +139,10 @@ INSERT INTO categories (id, name, description, icon) VALUES
 INSERT INTO specializations (id, category_id, name) VALUES 
 (1, 1, 'General Medicine'),
 (2, 1, 'Cardiology'),
-(3, 1, 'Dermatology'),
 (4, 2, 'Personal Fitness & Workout'),
 (5, 2, 'Massage & Physical Therapy'),
-(6, 2, 'Diet & Nutrition Counseling'),
 (7, 3, 'Legal Advisory & Contracts'),
-(8, 3, 'Business Strategy & Growth'),
-(9, 3, 'Tax & Financial Advisory');
+(8, 3, 'Business Strategy & Growth');
 
 -- Insert Users (Clients, Providers, Admin)
 INSERT INTO users (id, name, email, password_hash, role) VALUES 
@@ -182,20 +179,20 @@ INSERT INTO services (id, category_id, specialization_id, title, base_price, dur
 (8, 3, 8, 'Business Strategy Consultation', 250.00, 60);
 
 -- Insert Category-Specific Add-On Services & Diagnostic Tests
-INSERT INTO add_ons (id, category_id, title,  description, price, duration_minutes) VALUES 
+INSERT INTO add_ons (id, category_id, title,  description, price) VALUES 
 -- Doctor Category (1) Diagnostic Tests & Clinical Add-Ons
-(1, 1, 'Advanced ECG Diagnostics', 'Specialized electrical heart diagnostic monitoring', 50.00, 15),
-(2, 1, 'Comprehensive Blood Panel', 'Complete blood count and metabolic panel laboratory analysis', 75.00, 10),
+(1, 1, 'Advanced ECG Diagnostics', 'Specialized electrical heart diagnostic monitoring', 50.00),
+(2, 1, 'Comprehensive Blood Panel', 'Complete blood count and metabolic panel laboratory analysis', 75.00),
 
 -- Wellness Category (2) Fitness & Wellness Amenities
-(4, 2, 'Post-Workout Protein & Recovery Pack', 'Custom recovery smoothie and electrolyte hydration kit', 25.00, 0),
-(5, 2, 'Thermal Sauna & Hydro Therapy Pass', '30-minute post-workout infrared sauna and hydro bath pass', 35.00, 30),
-(6, 2, 'Body Composition & Muscle Scan', '3D bio-impedance body fat & muscle composition diagnostic scan', 45.00, 15),
+(4, 2, 'Post-Workout Protein & Recovery Pack', 'Custom recovery smoothie and electrolyte hydration kit', 25.00),
+(5, 2, 'Thermal Sauna & Hydro Therapy Pass', '30-minute post-workout infrared sauna and hydro bath pass', 35.00),
+(6, 2, 'Body Composition & Muscle Scan', '3D bio-impedance body fat & muscle composition diagnostic scan', 45.00),
 
 -- Consulting Category (3) Professional Deliverables & Priority
-(7, 3, 'Express 24-hr Contract Redlining', '24-hour priority legal document markup and redline comments', 100.00, 0),
-(8, 3, 'Executive Strategy Deck & Roadmap', 'Custom slide presentation summarizing strategy and financial roadmap', 120.00, 0),
-(9, 3, 'Priority NDA & Compliance Audit', 'Standard NDA template draft and regulatory compliance checklist', 60.00, 0);
+(7, 3, 'Express 24-hr Contract Redlining', '24-hour priority legal document markup and redline comments', 100.00),
+(8, 3, 'Executive Strategy Deck & Roadmap', 'Custom slide presentation summarizing strategy and financial roadmap', 120.00),
+(9, 3, 'Priority NDA & Compliance Audit', 'Standard NDA template draft and regulatory compliance checklist', 60.00);
 
 -- Insert Pricing Rules
 INSERT INTO pricing_rules (rule_type, adjustment_type, adjustment_value, priority) VALUES 
