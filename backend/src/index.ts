@@ -371,6 +371,100 @@ const updateSeniorityHandler = async (req: Request, res: Response) => {
 app.put('/api/providers/:id/seniority', updateSeniorityHandler);
 app.put('/api/doctors/:id/seniority', updateSeniorityHandler);
 
+const addProviderHandler = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, role, category_id, specialization_id, seniority_level, consultation_fee, bio } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    if (!category_id || isNaN(Number(category_id))) {
+      return res.status(400).json({ error: 'Category is required' });
+    }
+
+    // Check if email already exists
+    const [existing]: any = await pool.execute('SELECT id FROM users WHERE email = ?', [email.trim()]);
+    if (existing && existing.length > 0) {
+      return res.status(400).json({ error: 'A user with this email already exists' });
+    }
+
+    const providerRole = (role === 'provider' || role === 'doctor') ? role : 'doctor';
+    const userPassword = password && password.trim() ? password.trim() : 'doctor123';
+
+    // Insert user
+    const [userResult]: any = await pool.execute(
+      'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',
+      [name.trim(), email.trim().toLowerCase(), userPassword, providerRole]
+    );
+
+    const userId = userResult.insertId;
+
+    // Calculate seniority tier multiplier
+    const validLevels: Record<string, number> = {
+      junior: 1.00,
+      senior: 1.15,
+      lead_specialist: 1.30
+    };
+    const sLevel = (seniority_level && validLevels[seniority_level]) ? seniority_level : 'senior';
+    const multiplier = validLevels[sLevel];
+    const fee = consultation_fee !== undefined && !isNaN(Number(consultation_fee)) ? Number(consultation_fee) : 100.00;
+    const specId = specialization_id && !isNaN(Number(specialization_id)) ? Number(specialization_id) : null;
+
+    // Insert provider profile
+    await pool.execute(
+      'INSERT INTO provider_profiles (user_id, category_id, specialization_id, seniority_level, tier_multiplier, bio, consultation_fee) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [userId, Number(category_id), specId, sLevel, multiplier, bio || null, fee]
+    );
+
+    res.status(201).json({
+      message: 'Doctor / Staff member added successfully',
+      id: userId,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      role: providerRole,
+      category_id: Number(category_id),
+      specialization_id: specId,
+      seniority_level: sLevel,
+      tier_multiplier: multiplier,
+      consultation_fee: fee,
+      bio: bio || null
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+};
+
+app.post('/api/providers', addProviderHandler);
+app.post('/api/doctors', addProviderHandler);
+
+const deleteProviderHandler = async (req: Request, res: Response) => {
+  try {
+    const providerId = Number(req.params.id);
+    if (!providerId || isNaN(providerId)) {
+      return res.status(400).json({ error: 'Invalid provider ID' });
+    }
+
+    const [result]: any = await pool.execute(
+      "DELETE FROM users WHERE id = ? AND role IN ('provider', 'doctor')",
+      [providerId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Doctor / Staff record not found' });
+    }
+
+    res.json({ message: 'Doctor / Staff member removed successfully', id: providerId });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+};
+
+app.delete('/api/providers/:id', deleteProviderHandler);
+app.delete('/api/doctors/:id', deleteProviderHandler);
+
 // GET provider's appointments for a given date (used for slot calculations)
 const getProviderAppointmentsHandler = async (req: Request, res: Response) => {
   try {
@@ -604,6 +698,57 @@ app.post('/api/login', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+app.post('/api/register', async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (role && (role === 'admin' || role === 'provider' || role === 'doctor')) {
+      return res.status(400).json({
+        error: 'Public registration is restricted to Client accounts only. Admin and Provider accounts must be created by an Administrator.'
+      });
+    }
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'Full name is required' });
+    }
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return res.status(400).json({ error: 'Valid email address is required' });
+    }
+    if (!password || typeof password !== 'string' || password.length < 4) {
+      return res.status(400).json({ error: 'Password must be at least 4 characters long' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+
+    const [existing]: any = await pool.execute('SELECT id FROM users WHERE LOWER(email) = ?', [cleanEmail]);
+    if (existing && existing.length > 0) {
+      return res.status(400).json({ error: 'An account with this email already exists. Please sign in instead.' });
+    }
+
+    const [result]: any = await pool.execute(
+      'INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)',
+      [cleanName, cleanEmail, password, 'client']
+    );
+
+    const userId = result.insertId;
+
+    res.status(201).json({
+      message: 'Client registration successful!',
+      token: `jwt-token-${userId}`,
+      role: 'client',
+      user: {
+        id: userId,
+        name: cleanName,
+        email: cleanEmail,
+        role: 'client'
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Registration failed. Internal server error.' });
   }
 });
 

@@ -137,8 +137,8 @@
         <div style="height: 20px;"></div>
         <div class="row q-mt-md items-center justify-between">
           <div class="col-auto row items-center q-gutter-xs">
-            <q-btn label="Calculate Price" color="primary" unelevated @click="calculatePrice" />
-            <q-btn label="Book Appointment" color="positive" icon="check_circle" unelevated @click="bookAppointment" :loading="submittingBooking" />
+            <q-btn style="border-radius: 8px;" label="Calculate Price" color="primary" unelevated @click="calculatePrice" />
+            <q-btn style="border-radius: 8px;" label="Book Appointment" color="positive" icon="check_circle" unelevated @click="bookAppointment" :loading="submittingBooking" />
           </div>
           <div class="col-auto text-weight-medium text-subtitle1">
             Total Price: <span class="text-primary text-h6 text-weight-bold">{{ priceDisplay }}</span>
@@ -156,22 +156,43 @@
           <q-icon name="history" class="q-mr-xs" /> My Appointments & History
         </div>
 
-        <!-- Filter Controls on Client Side -->
-        <div class="row items-center q-gutter-xs">
-          <q-btn-toggle
+        <!-- Dynamic Category Filter, Sorting, and Search Controls -->
+        <div class="row items-center q-gutter-sm">
+          
+
+          <q-select
             v-model="historyCategoryFilter"
-            toggle-color="primary"
-            flat
+            :options="categoryFilterOptions"
+            label="Category"
+            outlined
             dense
-            no-caps
-            :options="[
-              { label: 'All Services', value: 0 },
-              { label: 'Doctor / Healthcare', value: 1 },
-              { label: 'Wellness & Fitness', value: 2 },
-              { label: 'Consulting & Professional', value: 3 }
-            ]"
-          />
-          <q-btn flat round icon="refresh" color="primary" @click="loadPatientHistory" />
+            emit-value
+            map-options
+            style="width: 190px"
+          >
+            <template #prepend>
+              <q-icon name="category" color="primary" />
+            </template>
+          </q-select>
+
+          <q-select
+            v-model="historySortBy"
+            :options="sortOptions"
+            label="Sort By"
+            outlined
+            dense
+            emit-value
+            map-options
+            style="width: 180px"
+          >
+            <template #prepend>
+              <q-icon name="sort" color="primary" />
+            </template>
+          </q-select>
+
+          <q-btn flat round icon="refresh" color="primary" @click="loadPatientHistory">
+            <q-tooltip>Refresh History</q-tooltip>
+          </q-btn>
         </div>
       </q-card-section>
 
@@ -412,8 +433,28 @@ const date = ref('');
 const price = ref<number | null>(null);
 const submittingBooking = ref(false);
 
-// History Filter Ref
+// History Filter & Sort State
 const historyCategoryFilter = ref<number>(0);
+const historySortBy = ref<'newest' | 'oldest' | 'price_desc' | 'price_asc' | 'status'>('newest');
+const historySearch = ref('');
+
+const categoryFilterOptions = computed(() => {
+  return [
+    { label: 'All Categories', value: 0 },
+    ...categories.value.map(c => ({
+      label: c.name,
+      value: c.id
+    }))
+  ];
+});
+
+const sortOptions = [
+  { label: 'Date: Newest First', value: 'newest' },
+  { label: 'Date: Oldest First', value: 'oldest' },
+  { label: 'Price: High to Low', value: 'price_desc' },
+  { label: 'Price: Low to High', value: 'price_asc' },
+  { label: 'Status', value: 'status' }
+];
 
 // History & Summary State
 const historyItems = ref<PatientHistoryItem[]>([]);
@@ -453,21 +494,56 @@ const userName = computed(() => {
   }
 });
 
-// Client-side history filter
+// Dynamic history filtering & sorting
 const filteredHistoryItems = computed(() => {
-  if (!historyCategoryFilter.value || historyCategoryFilter.value === 0) {
-    return historyItems.value;
+  let list = [...historyItems.value];
+
+  // 1. Filter by Category from DB
+  if (historyCategoryFilter.value && historyCategoryFilter.value !== 0) {
+    list = list.filter(item => {
+      if (item.category_id) {
+        return Number(item.category_id) === Number(historyCategoryFilter.value);
+      }
+      const catObj = categories.value.find(c => c.id === historyCategoryFilter.value);
+      if (catObj && item.category_name) {
+        return item.category_name.toLowerCase() === catObj.name.toLowerCase();
+      }
+      return false;
+    });
   }
-  return historyItems.value.filter(item => {
-    if (item.category_id) {
-      return Number(item.category_id) === Number(historyCategoryFilter.value);
+
+  // 2. Filter by Search Query
+  if (historySearch.value && historySearch.value.trim().length > 0) {
+    const q = historySearch.value.trim().toLowerCase();
+    list = list.filter(item =>
+      (item.service_title || '').toLowerCase().includes(q) ||
+      (item.provider_name || item.doctor_name || '').toLowerCase().includes(q) ||
+      (item.category_name || '').toLowerCase().includes(q) ||
+      (item.status || '').toLowerCase().includes(q)
+    );
+  }
+
+  // 3. Sorting Logic
+  list.sort((a, b) => {
+    if (historySortBy.value === 'newest') {
+      return new Date(b.start_time).getTime() - new Date(a.start_time).getTime();
     }
-    const catName = (item.category_name || '').toLowerCase();
-    if (historyCategoryFilter.value === 1) return catName.includes('doctor') || catName.includes('health');
-    if (historyCategoryFilter.value === 2) return catName.includes('wellness') || catName.includes('fitness');
-    if (historyCategoryFilter.value === 3) return catName.includes('consult');
-    return true;
+    if (historySortBy.value === 'oldest') {
+      return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+    }
+    if (historySortBy.value === 'price_desc') {
+      return Number(b.total_amount) - Number(a.total_amount);
+    }
+    if (historySortBy.value === 'price_asc') {
+      return Number(a.total_amount) - Number(b.total_amount);
+    }
+    if (historySortBy.value === 'status') {
+      return (a.status || '').localeCompare(b.status || '');
+    }
+    return 0;
   });
+
+  return list;
 });
 
 // Slot state
@@ -562,56 +638,71 @@ const getStatusColor = (status: string) => {
 // Action button dynamic customization based on service category
 const getActionButtonLabel = (catName?: string) => {
   const cat = (catName || '').toLowerCase();
-  if (cat.includes('doctor') || cat.includes('health')) return 'View Prescription';
+  if (cat.includes('doctor') || cat.includes('health') || cat.includes('medical')) return 'View Prescription';
   if (cat.includes('wellness') || cat.includes('fitness')) return 'View Workout Plan';
-  if (cat.includes('consult')) return 'View Action Items';
-  return 'View Notes';
+  if (cat.includes('salon') || cat.includes('beauty') || cat.includes('barber') || cat.includes('grooming') || cat.includes('hair') || cat.includes('spa')) return 'View Care Advices';
+  if (cat.includes('tutor') || cat.includes('school') || cat.includes('education')) return 'View Study Plan';
+  if (cat.includes('consult') || cat.includes('legal')) return 'View Strategy Advices';
+  return 'View Advices';
 };
 
 const getActionButtonIcon = (catName?: string) => {
   const cat = (catName || '').toLowerCase();
-  if (cat.includes('doctor') || cat.includes('health')) return 'medication';
+  if (cat.includes('doctor') || cat.includes('health') || cat.includes('medical')) return 'medication';
   if (cat.includes('wellness') || cat.includes('fitness')) return 'fitness_center';
-  if (cat.includes('consult')) return 'assignment_turned_in';
+  if (cat.includes('salon') || cat.includes('beauty') || cat.includes('barber') || cat.includes('grooming') || cat.includes('hair') || cat.includes('spa')) return 'content_cut';
+  if (cat.includes('tutor') || cat.includes('school') || cat.includes('education')) return 'school';
+  if (cat.includes('consult') || cat.includes('legal')) return 'gavel';
   return 'assignment';
 };
 
 const getActionButtonColor = (catName?: string) => {
   const cat = (catName || '').toLowerCase();
-  if (cat.includes('doctor') || cat.includes('health')) return 'primary';
+  if (cat.includes('doctor') || cat.includes('health') || cat.includes('medical')) return 'primary';
   if (cat.includes('wellness') || cat.includes('fitness')) return 'positive';
-  if (cat.includes('consult')) return 'deep-purple';
+  if (cat.includes('salon') || cat.includes('beauty') || cat.includes('barber') || cat.includes('grooming') || cat.includes('hair') || cat.includes('spa')) return 'pink-8';
+  if (cat.includes('tutor') || cat.includes('school') || cat.includes('education')) return 'purple-8';
+  if (cat.includes('consult') || cat.includes('legal')) return 'deep-purple';
   return 'secondary';
 };
 
 const getModalTitle = (catName?: string) => {
   const cat = (catName || '').toLowerCase();
-  if (cat.includes('doctor') || cat.includes('health')) return 'Medical Summary & Prescription';
+  if (cat.includes('doctor') || cat.includes('health') || cat.includes('medical')) return 'Medical Summary & Prescription';
   if (cat.includes('wellness') || cat.includes('fitness')) return 'Wellness & Session Summary';
-  if (cat.includes('consult')) return 'Executive Summary & Action Items';
-  return 'Appointment Summary & Notes';
+  if (cat.includes('salon') || cat.includes('beauty') || cat.includes('barber') || cat.includes('grooming') || cat.includes('hair') || cat.includes('spa')) return 'Styling Session Summary & Care Advices';
+  if (cat.includes('tutor') || cat.includes('school') || cat.includes('education')) return 'Academic Session Summary & Study Plan';
+  if (cat.includes('consult') || cat.includes('legal')) return 'Executive Summary & Strategy Advices';
+  return 'Appointment Summary & Advices';
 };
 
 const getNotesHeader = (catName?: string) => {
   const cat = (catName || '').toLowerCase();
-  if (cat.includes('doctor') || cat.includes('health')) return 'Doctor Clinical Notes';
+  if (cat.includes('doctor') || cat.includes('health') || cat.includes('medical')) return 'Doctor Clinical Notes';
   if (cat.includes('wellness') || cat.includes('fitness')) return 'Trainer & Session Notes';
-  if (cat.includes('consult')) return 'Consultant Notes & Observations';
-  return 'Consultation Notes';
+  if (cat.includes('salon') || cat.includes('beauty') || cat.includes('barber') || cat.includes('grooming') || cat.includes('hair') || cat.includes('spa')) return 'Stylist Treatment Notes';
+  if (cat.includes('tutor') || cat.includes('school') || cat.includes('education')) return 'Tutor Progress Notes';
+  if (cat.includes('consult') || cat.includes('legal')) return 'Consultant Observations';
+  return 'Session Notes';
 };
 
 const getRecommendationHeader = (catName?: string) => {
   const cat = (catName || '').toLowerCase();
-  if (cat.includes('doctor') || cat.includes('health')) return 'Prescribed Medications';
+  if (cat.includes('doctor') || cat.includes('health') || cat.includes('medical')) return 'Prescribed Medications';
   if (cat.includes('wellness') || cat.includes('fitness')) return 'Fitness & Diet Recommendations';
-  if (cat.includes('consult')) return 'Action Items & Next Steps';
-  return 'Recommendations & Action Items';
+  if (cat.includes('salon') || cat.includes('beauty') || cat.includes('barber') || cat.includes('grooming') || cat.includes('hair') || cat.includes('spa')) return 'Hair & Skin Care Advices';
+  if (cat.includes('tutor') || cat.includes('school') || cat.includes('education')) return 'Homework & Study Advices';
+  if (cat.includes('consult') || cat.includes('legal')) return 'Legal & Strategy Advices';
+  return 'Care Advices & Recommendations';
 };
 
 const getRecommendationIcon = (catName?: string) => {
   const cat = (catName || '').toLowerCase();
-  if (cat.includes('doctor') || cat.includes('health')) return 'medication';
+  if (cat.includes('doctor') || cat.includes('health') || cat.includes('medical')) return 'medication';
   if (cat.includes('wellness') || cat.includes('fitness')) return 'fitness_center';
+  if (cat.includes('salon') || cat.includes('beauty') || cat.includes('barber') || cat.includes('grooming') || cat.includes('hair') || cat.includes('spa')) return 'content_cut';
+  if (cat.includes('tutor') || cat.includes('school') || cat.includes('education')) return 'school';
+  if (cat.includes('consult') || cat.includes('legal')) return 'gavel';
   return 'assignment_turned_in';
 };
 

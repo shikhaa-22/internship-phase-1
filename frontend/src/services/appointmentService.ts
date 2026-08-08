@@ -49,6 +49,18 @@ export interface SpecializationParams {
   name: string;
 }
 
+export interface ProviderCreateParams {
+  name: string;
+  email: string;
+  password?: string;
+  role?: string;
+  category_id: number;
+  specialization_id?: number | null;
+  seniority_level?: string;
+  consultation_fee?: number;
+  bio?: string;
+}
+
 export const appointmentService = {
   /**
    * Fetch all providers / specialists
@@ -57,6 +69,32 @@ export const appointmentService = {
     const response = await fetch(`${API_BASE}/providers`);
     if (!response.ok) throw new Error('Failed to fetch providers');
     return response.json();
+  },
+
+  /**
+   * Add a new doctor / staff provider
+   */
+  async addProvider(params: ProviderCreateParams) {
+    const response = await fetch(`${API_BASE}/providers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to add doctor/staff');
+    return data;
+  },
+
+  /**
+   * Delete a doctor / staff provider
+   */
+  async deleteProvider(id: number) {
+    const response = await fetch(`${API_BASE}/providers/${id}`, {
+      method: 'DELETE',
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to remove doctor/staff');
+    return data;
   },
 
   /**

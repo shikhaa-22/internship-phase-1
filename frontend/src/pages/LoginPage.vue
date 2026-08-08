@@ -7,13 +7,27 @@
         class="q-pa-lg bg-white border-slate shadow-3"
         style="border-radius: 16px"
       >
+        <!-- Top Back Button inside Card -->
+        <div class="row items-center q-mb-xs">
+          <q-btn
+            flat
+            dense
+            icon="arrow_back"
+            label="Back to Home"
+            color="primary"
+            no-caps
+            class="text-weight-bold"
+            @click="goBack"
+          />
+        </div>
+
         <!-- Logo & Header -->
-        <q-card-section class="text-center q-pb-none">
+        <q-card-section class="text-center q-pb-none q-pt-xs">
           <q-avatar
             size="56px"
             color="primary"
             text-color="white"
-            icon="event_note"
+            icon="shield"
             class="q-mb-sm shadow-1"
           />
           <div style="height: 10px;"></div>
@@ -26,6 +40,20 @@
         </q-card-section>
 
         <q-card-section class="q-pt-none">
+          <!-- Auth Mode Toggle Tabs -->
+          <q-tabs
+            v-model="authTab"
+            class="text-primary q-mb-md"
+            active-color="primary"
+            indicator-color="primary"
+            align="justify"
+            dense
+            @update:model-value="errorMessage = ''"
+          >
+            <q-tab name="login" label="Sign In" icon="login" no-caps class="text-weight-bold" />
+            <q-tab name="register" label="Register as Client" icon="person_add_alt" no-caps class="text-weight-bold" />
+          </q-tabs>
+
           <!-- Error Banner -->
           <q-banner
             v-if="errorMessage"
@@ -39,8 +67,8 @@
             {{ errorMessage }}
           </q-banner>
 
-          <!-- Login Form -->
-          <q-form @submit.prevent="handleLogin" class="column q-gutter-y-md">
+          <!-- MODE 1: SIGN IN FORM -->
+          <q-form v-if="authTab === 'login'" @submit.prevent="handleLogin" class="column q-gutter-y-md">
             <q-input
               v-model="email"
               type="email"
@@ -51,7 +79,7 @@
               class="text-body1"
             >
               <template #prepend>
-                <q-icon name="email" color="primary" />
+                <q-icon name="alternate_email" color="primary" />
               </template>
             </q-input>
 
@@ -65,7 +93,7 @@
               class="text-body1"
             >
               <template #prepend>
-                <q-icon name="lock" color="primary" />
+                <q-icon name="vpn_key" color="primary" />
               </template>
               <template #append>
                 <q-icon
@@ -89,29 +117,89 @@
             />
           </q-form>
 
-          <q-separator class="q-my-md" />
+          <!-- MODE 2: CLIENT REGISTRATION FORM -->
+          <q-form v-else @submit.prevent="handleClientRegister" class="column q-gutter-y-md">
+            
 
-          <!-- Demo Quick Logins -->
-          <div class="text-caption text-weight-bold text-grey-7 text-center q-mb-sm">
-            QUICK DEMO LOGINS
-          </div>
-          <div class="row q-col-gutter-xs justify-center">
-            <div class="col-auto">
-              <q-btn size="sm" outline color="primary" label="Client (Shikhaa)" no-caps @click="fillCredentials('shikha@example.com', 'hashed_pass_123')" />
-            </div>
-            <div class="col-auto">
-              <q-btn size="sm" outline color="teal" label="Doctor (Dr. Smith)" no-caps @click="fillCredentials('drsmith@example.com', 'hashed_pass_123')" />
-            </div>
-            <div class="col-auto">
-              <q-btn size="sm" outline color="deep-orange" label="Wellness (Marcus)" no-caps @click="fillCredentials('marcus@example.com', 'hashed_pass_123')" />
-            </div>
-            <div class="col-auto">
-              <q-btn size="sm" outline color="indigo" label="Consultant (Sarah)" no-caps @click="fillCredentials('sarah@example.com', 'hashed_pass_123')" />
-            </div>
-            <div class="col-auto">
-              <q-btn size="sm" outline color="indigo" label="Admin (admin)" no-caps @click="fillCredentials('admin@example.com', 'hashed_pass_123')" />
-            </div>
-          </div>
+            <q-input
+              v-model="regName"
+              type="text"
+              label="Full Name *"
+              hint="e.g. Jane Doe"
+              outlined
+              dense
+              required
+              class="text-body1"
+            >
+              <template #prepend>
+                <q-icon name="person" color="primary" />
+              </template>
+            </q-input>
+
+            <q-input
+              v-model="regEmail"
+              type="email"
+              label="Email Address *"
+              hint="Your login email"
+              outlined
+              dense
+              required
+              class="text-body1"
+            >
+              <template #prepend>
+                <q-icon name="alternate_email" color="primary" />
+              </template>
+            </q-input>
+
+            <q-input
+              v-model="regPassword"
+              :type="isRegPwdVisible ? 'text' : 'password'"
+              label="Password *"
+              outlined
+              dense
+              required
+              class="text-body1"
+            >
+              <template #prepend>
+                <q-icon name="vpn_key" color="primary" />
+              </template>
+              <template #append>
+                <q-icon
+                  :name="isRegPwdVisible ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  @click="isRegPwdVisible = !isRegPwdVisible"
+                />
+              </template>
+            </q-input>
+
+            <q-input
+              v-model="regConfirmPassword"
+              :type="isRegPwdVisible ? 'text' : 'password'"
+              label="Confirm Password *"
+              outlined
+              dense
+              required
+              class="text-body1"
+            >
+              <template #prepend>
+                <q-icon name="lock_reset" color="primary" />
+              </template>
+            </q-input>
+            <div style="height: 5px;"></div>
+
+            <q-btn
+              label="Create Client Account"
+              type="submit"
+              color="primary"
+              class="full-width q-py-sm text-subtitle2 text-weight-bold"
+              :loading="loading"
+              unelevated
+              no-caps
+              style="border-radius: 8px"
+            />
+          </q-form>
+
+          <q-separator class="q-my-md" />
         </q-card-section>
       </q-card>
     </div>
@@ -119,16 +207,43 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
 
-const { email, password, loading, errorMessage, handleLogin } = useAuth();
-const isPwdVisible = ref(false);
+const router = useRouter();
+const route = useRoute();
+const authTab = ref<'login' | 'register'>('login');
 
-const fillCredentials = (demoEmail: string, demoPass: string) => {
-  email.value = demoEmail;
-  password.value = demoPass;
-  void handleLogin();
+onMounted(() => {
+  if (route.path.includes('register') || route.query.tab === 'register') {
+    authTab.value = 'register';
+  } else {
+    authTab.value = 'login';
+  }
+});
+const {
+  email,
+  password,
+  regName,
+  regEmail,
+  regPassword,
+  regConfirmPassword,
+  loading,
+  errorMessage,
+  handleLogin,
+  handleClientRegister,
+} = useAuth();
+
+const isPwdVisible = ref(false);
+const isRegPwdVisible = ref(false);
+
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.back();
+  } else {
+    void router.push('/');
+  }
 };
 </script>
 

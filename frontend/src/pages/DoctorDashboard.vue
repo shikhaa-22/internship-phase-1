@@ -559,6 +559,31 @@
               />
             </template>
 
+            <!-- Salon & Beauty Inputs (Advices & Care Notes) -->
+            <template v-else-if="getProviderCategoryType(targetAppointment?.category_name) === 'salon'">
+              <q-input
+                v-model="prescriptionInput"
+                type="textarea"
+                outlined
+                dense
+                label="Styling & Aftercare Advices *"
+                hint="Enter hair/skin care advices, product recommendations, and aftercare tips"
+                rows="3"
+                class="q-mb-sm"
+                autofocus
+              />
+              <q-input
+                v-model="clinicalNotesInput"
+                type="textarea"
+                outlined
+                dense
+                label="Treatment & Styling Notes"
+                hint="Record haircut style, color formula, or treatment details"
+                rows="2"
+                class="q-mb-md"
+              />
+            </template>
+
             <!-- Wellness Inputs (Diet & Workout Plan) -->
             <template v-else-if="getProviderCategoryType(targetAppointment?.category_name) === 'wellness'">
               <q-input
@@ -584,18 +609,78 @@
               />
             </template>
 
-            <!-- Consulting Inputs (Session Summary ONLY) -->
-            <template v-else>
+            <!-- Tutoring Inputs (Study Plan & Homework) -->
+            <template v-else-if="getProviderCategoryType(targetAppointment?.category_name) === 'tutoring'">
+              <q-input
+                v-model="prescriptionInput"
+                type="textarea"
+                outlined
+                dense
+                label="Homework & Study Advices *"
+                hint="Detail assigned practice problems, reading, and study plan"
+                rows="3"
+                class="q-mb-sm"
+                autofocus
+              />
               <q-input
                 v-model="clinicalNotesInput"
                 type="textarea"
                 outlined
                 dense
-                label="Executive Session Summary & Key Takeaways *"
-                hint="Record advisory notes, key decisions, and session summary"
-                rows="4"
+                label="Academic Progress & Session Notes"
+                hint="Record student understanding and session feedback"
+                rows="2"
                 class="q-mb-md"
+              />
+            </template>
+
+            <!-- Consulting & Legal Inputs -->
+            <template v-else-if="getProviderCategoryType(targetAppointment?.category_name) === 'consulting'">
+              <q-input
+                v-model="prescriptionInput"
+                type="textarea"
+                outlined
+                dense
+                label="Legal & Strategy Advices *"
+                hint="Detail recommended next steps, action items, or strategy"
+                rows="3"
+                class="q-mb-sm"
                 autofocus
+              />
+              <q-input
+                v-model="clinicalNotesInput"
+                type="textarea"
+                outlined
+                dense
+                label="Advisory & Case Observations"
+                hint="Record session observations and meeting summary"
+                rows="2"
+                class="q-mb-md"
+              />
+            </template>
+
+            <!-- General / Other Service Inputs -->
+            <template v-else>
+              <q-input
+                v-model="prescriptionInput"
+                type="textarea"
+                outlined
+                dense
+                label="Care Advices & Recommendations *"
+                hint="Enter recommendations and aftercare guidelines"
+                rows="3"
+                class="q-mb-sm"
+                autofocus
+              />
+              <q-input
+                v-model="clinicalNotesInput"
+                type="textarea"
+                outlined
+                dense
+                label="Session Notes & Summary"
+                hint="Record session observations and notes"
+                rows="2"
+                class="q-mb-md"
               />
             </template>
 
@@ -1006,72 +1091,102 @@ const currentDoctorName = ref<string>('Dr. Robert Smith');
 
 const getProviderCategoryType = (catName?: string | null) => {
   const cat = (catName || '').toLowerCase();
-  if (cat.includes('wellness') || cat.includes('fitness')) return 'wellness';
-  if (cat.includes('consult')) return 'consulting';
-  return 'doctor';
+  if (cat.includes('wellness') || cat.includes('fitness') || cat.includes('gym') || cat.includes('yoga')) return 'wellness';
+  if (cat.includes('salon') || cat.includes('beauty') || cat.includes('barber') || cat.includes('grooming') || cat.includes('hair') || cat.includes('spa')) return 'salon';
+  if (cat.includes('tutor') || cat.includes('school') || cat.includes('education') || cat.includes('academic')) return 'tutoring';
+  if (cat.includes('legal') || cat.includes('consult') || cat.includes('advisory') || cat.includes('business')) return 'consulting';
+  if (cat.includes('doctor') || cat.includes('health') || cat.includes('medical') || cat.includes('clinical')) return 'doctor';
+  return 'general';
 };
 
 const getRosterCompleteButtonLabel = (catName?: string | null) => {
   const type = getProviderCategoryType(catName);
   if (type === 'doctor') return 'Prescribe & Complete';
   if (type === 'wellness') return 'Add Diet/Workout & Complete';
-  return 'Record Summary & Complete';
+  if (type === 'salon') return 'Add Advices & Complete';
+  if (type === 'tutoring') return 'Add Study Plan & Complete';
+  if (type === 'consulting') return 'Record Advices & Complete';
+  return 'Record Advices & Complete';
 };
 
 const getRosterCompleteButtonIcon = (catName?: string | null) => {
   const type = getProviderCategoryType(catName);
   if (type === 'doctor') return 'medication';
   if (type === 'wellness') return 'fitness_center';
+  if (type === 'salon') return 'content_cut';
+  if (type === 'tutoring') return 'school';
+  if (type === 'consulting') return 'gavel';
   return 'assignment_turned_in';
 };
 
 const getCompleteModalHeader = (catName?: string | null) => {
   const type = getProviderCategoryType(catName);
   if (type === 'doctor') return 'Add Medical Prescription & Clinical Notes';
-  if (type === 'wellness') return 'Add Diet & Workout Plan';
-  return 'Add Session Summary';
+  if (type === 'wellness') return 'Add Custom Diet & Workout Plan';
+  if (type === 'salon') return 'Add Styling Care Advices & Session Notes';
+  if (type === 'tutoring') return 'Add Homework & Study Advices';
+  if (type === 'consulting') return 'Add Legal & Strategy Advices';
+  return 'Add Advices & Session Notes';
 };
 
 const getCompleteModalSaveLabel = (catName?: string | null) => {
   const type = getProviderCategoryType(catName);
   if (type === 'doctor') return 'Save Prescription & Notes';
   if (type === 'wellness') return 'Save Workout & Diet Plan';
-  return 'Save Session Summary';
+  if (type === 'salon') return 'Save Care Advices & Notes';
+  if (type === 'tutoring') return 'Save Study Plan & Notes';
+  if (type === 'consulting') return 'Save Strategy Advices & Notes';
+  return 'Save Advices & Notes';
 };
 
 const getDiagnosisNotesTitle = (catName?: string | null) => {
   const type = getProviderCategoryType(catName);
   if (type === 'doctor') return '📋 Diagnosis & Notes:';
   if (type === 'wellness') return '📋 Assessment & Notes:';
-  return '📋 Advisory & Notes:';
+  if (type === 'salon') return '✂️ Treatment & Styling Notes:';
+  if (type === 'tutoring') return '📚 Academic Progress Notes:';
+  if (type === 'consulting') return '⚖️ Advisory Observations:';
+  return '📋 Session Notes:';
 };
 
 const getNotesLabelOnly = (catName?: string | null) => {
   const type = getProviderCategoryType(catName);
   if (type === 'doctor') return 'Diagnosis & Notes';
   if (type === 'wellness') return 'Assessment & Notes';
-  return 'Advisory & Notes';
+  if (type === 'salon') return 'Treatment & Styling Notes';
+  if (type === 'tutoring') return 'Academic Progress Notes';
+  if (type === 'consulting') return 'Advisory Observations';
+  return 'Session Notes';
 };
 
 const getPrescriptionTitle = (catName?: string | null) => {
   const type = getProviderCategoryType(catName);
   if (type === 'doctor') return '💊 Prescription & Medications:';
   if (type === 'wellness') return '🏃 Workout & Diet Plan:';
-  return '💡 Recommendations & Action Items:';
+  if (type === 'salon') return '💇 Styling & Care Advices:';
+  if (type === 'tutoring') return '📖 Homework & Study Advices:';
+  if (type === 'consulting') return '💡 Legal & Strategy Advices:';
+  return '💡 Care Advices & Recommendations:';
 };
 
 const getPrescriptionLabelOnly = (catName?: string | null) => {
   const type = getProviderCategoryType(catName);
   if (type === 'doctor') return 'Prescription & Medications';
   if (type === 'wellness') return 'Workout & Diet Plan';
-  return 'Recommendations & Action Items';
+  if (type === 'salon') return 'Styling & Care Advices';
+  if (type === 'tutoring') return 'Homework & Study Advices';
+  if (type === 'consulting') return 'Legal & Strategy Advices';
+  return 'Care Advices & Recommendations';
 };
 
 const getEditPrescriptionButtonLabel = (catName?: string | null) => {
   const type = getProviderCategoryType(catName);
   if (type === 'doctor') return 'Edit Prescription';
   if (type === 'wellness') return 'Edit Plan';
-  return 'Edit Advisory';
+  if (type === 'salon') return 'Edit Care Advices';
+  if (type === 'tutoring') return 'Edit Study Plan';
+  if (type === 'consulting') return 'Edit Strategy Advices';
+  return 'Edit Advices';
 };
 
 const formatApptTimeRange = (appt: Appointment | undefined, defaultSlotTime: string): string => {
